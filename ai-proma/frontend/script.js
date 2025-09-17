@@ -33,6 +33,10 @@ class FaramexChat {
         this.attachedImagesContainer = document.getElementById('attached-images');
         this.typingIndicator = document.getElementById('typing-indicator');
         this.charCount = document.getElementById('char-count');
+        
+        // Typing indicator state
+        this.typingTimeout = null;
+        this.isTypingVisible = false;
 
         // Modal elements
         this.loginModal = document.getElementById('login-modal');
@@ -87,8 +91,17 @@ class FaramexChat {
         this.messageInput.style.height = 'auto';
         this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 120) + 'px';
         
-        // Enable/disable send button
-        this.sendBtn.disabled = length === 0 && this.attachedImages.length === 0;
+        // Enable/disable send button with visual feedback
+        const isDisabled = length === 0 && this.attachedImages.length === 0;
+        this.sendBtn.disabled = isDisabled;
+        
+        if (isDisabled) {
+            this.sendBtn.style.opacity = '0.5';
+            this.sendBtn.style.transform = 'scale(0.95)';
+        } else {
+            this.sendBtn.style.opacity = '1';
+            this.sendBtn.style.transform = 'scale(1)';
+        }
     }
 
     handleKeyDown(e) {
@@ -180,104 +193,135 @@ class FaramexChat {
         const message = this.messageInput.value.trim();
         if (!message && this.attachedImages.length === 0) return;
 
-        // Upload images if any
-        const imageUrls = await this.uploadImages();
+        // Disable send button during processing
+        this.sendBtn.disabled = true;
+        this.sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-        // Add user message to chat
-        this.addMessage('user', message, imageUrls);
-
-        // Clear input
-        this.messageInput.value = '';
-        this.attachedImages = [];
-        this.renderAttachedImages();
-        this.handleInputChange();
-
-        // Show typing indicator
+        // Show typing indicator immediately
         this.showTypingIndicator();
+        
+        // Set fallback timeout to hide typing indicator if something goes wrong
+        this.setTypingTimeout();
 
         try {
+            // Upload images if any
+            const imageUrls = await this.uploadImages();
+
+            // Add user message to chat
+            this.addMessage('user', message, imageUrls);
+
+            // Clear input
+            this.messageInput.value = '';
+            this.attachedImages = [];
+            this.renderAttachedImages();
+            this.handleInputChange();
+
             await this.sendToAPI(message, imageUrls);
         } catch (error) {
             this.hideTypingIndicator();
             this.addMessage('agent', 'Xin lỗi, đã có lỗi xảy ra khi xử lý tin nhắn của bạn. Vui lòng thử lại.');
             console.error('Error sending message:', error);
+        } finally {
+            // Re-enable send button
+            this.sendBtn.disabled = false;
+            this.sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            this.handleInputChange(); // Update button state
         }
     }
 
     async sendToAPI(message, images = []) {
-        const payload = {
-            message: message,
-            images: images,
-            files: [],
-            metadata: {}
-        };
+        try {
+            const payload = {
+                message: message,
+                images: images,
+                files: [],
+                metadata: {}
+            };
 
-        const response = await fetch(`${this.apiUrl}/api/v1/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.token}`
-            },
-            body: JSON.stringify(payload)
-        });
+            const response = await fetch(`${this.apiUrl}/api/v1/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.token}`
+                },
+                body: JSON.stringify(payload)
+            });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-        // Handle streaming response
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let agentMessage = '';
-        let messageElement = null;
-
-        this.hideTypingIndicator();
-
-        while (true) {
-            const { done, value } = await reader.read();
+            // Handle streaming response with optimized processing
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let agentMessage = '';
+            let messageElement = null;
+            let buffer = '';
+            let updateCounter = 0;
+            const UPDATE_FREQUENCY = 3; // Update UI every 3 chunks for smoother performance
+            let firstContentReceived = false;
             
-            if (done) break;
+            // Ensure typing indicator is visible while waiting for first response
+            if (!this.isTypingVisible) {
+                this.showTypingIndicator();
+            }
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) {
+                    // Final update
+                    if (messageElement && agentMessage) {
+                        this.updateMessage(messageElement, agentMessage);
+                    }
+                    // Ensure typing indicator is hidden when stream ends
+                    this.hideTypingIndicator();
+                    break;
+                }
 
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const data = line.slice(6);
-                    if (data === '[DONE]') continue;
-                    
-                    try {
-                        // Try to parse as JSON first
-                        const jsonData = JSON.parse(data);
-                        if (jsonData.content) {
-                            agentMessage += jsonData.content;
-                        }
-                        
-                        // Create or update message element
-                        if (!messageElement) {
-                            messageElement = this.addMessage('agent', agentMessage);
-                        } else {
-                            this.updateMessage(messageElement, agentMessage);
-                        }
-                        
-                        if (this.settings.autoScroll) {
-                            this.scrollToBottom();
-                        }
-                    } catch (e) {
-                        // Handle non-JSON data - treat as plain text
-                        agentMessage += data;
-                        if (!messageElement) {
-                            messageElement = this.addMessage('agent', agentMessage);
-                        } else {
-                            this.updateMessage(messageElement, agentMessage);
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+                // Process each complete line
+                for (let i = 0; i < lines.length - 1; i++) {
+                    const line = lines[i].trim();
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.substring(6));
+                            if (data.content) {
+                                agentMessage += data.content;
+                                updateCounter++;
+                                
+                                // Create message element on first content
+                                if (!messageElement) {
+                                    messageElement = this.addMessage('agent', '', []);
+                                    // Hide typing indicator only when we actually display content
+                                    this.hideTypingIndicator();
+                                    this.updateAgentStatus('typing');
+                                    firstContentReceived = true;
+                                }
+                                
+                                // Update UI periodically for better performance
+                                if (updateCounter % UPDATE_FREQUENCY === 0) {
+                                    this.updateMessage(messageElement, agentMessage);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Error parsing SSE data:', e);
                         }
                     }
                 }
             }
-        }
 
-        if (this.settings.soundNotifications) {
-            this.playNotificationSound();
+            if (this.settings.soundNotifications) {
+                this.playNotificationSound();
+            }
+            
+        } catch (error) {
+            // Ensure typing indicator is hidden on error
+            this.hideTypingIndicator();
+            throw error; // Re-throw to be handled by calling function
         }
     }
 
@@ -320,7 +364,10 @@ class FaramexChat {
     updateMessage(messageElement, content) {
         const contentElement = messageElement.querySelector('.message-content p');
         if (contentElement) {
-            contentElement.innerHTML = this.formatMessage(content);
+            // Use requestAnimationFrame for smoother updates
+            requestAnimationFrame(() => {
+                contentElement.innerHTML = this.formatMessage(content);
+            });
         }
     }
 
@@ -334,16 +381,82 @@ class FaramexChat {
     }
 
     showTypingIndicator() {
+        // Clear any existing timeout
+        this.clearTypingTimeout();
+        
+        this.isTypingVisible = true;
         this.typingIndicator.style.display = 'flex';
+        this.typingIndicator.classList.remove('hide');
+        this.typingIndicator.classList.add('show');
+        
+        // Update agent status to show thinking
+        this.updateAgentStatus('thinking');
+        
         this.scrollToBottom();
     }
 
     hideTypingIndicator() {
-        this.typingIndicator.style.display = 'none';
+        // Clear any existing timeout
+        this.clearTypingTimeout();
+        
+        this.isTypingVisible = false;
+        this.typingIndicator.classList.remove('show');
+        this.typingIndicator.classList.add('hide');
+        
+        // Update agent status back to online
+        this.updateAgentStatus('online');
+        
+        setTimeout(() => {
+            if (!this.isTypingVisible) { // Only hide if still should be hidden
+                this.typingIndicator.style.display = 'none';
+            }
+        }, 300);
+    }
+    
+    setTypingTimeout() {
+        // Set a fallback timeout to hide typing indicator after 30 seconds
+        this.typingTimeout = setTimeout(() => {
+            console.warn('Typing indicator timeout - hiding indicator');
+            this.hideTypingIndicator();
+        }, 30000); // 30 seconds timeout
+    }
+    
+    clearTypingTimeout() {
+        if (this.typingTimeout) {
+            clearTimeout(this.typingTimeout);
+            this.typingTimeout = null;
+        }
+    }
+    
+    updateAgentStatus(status) {
+        const statusElement = this.agentStatus;
+        if (!statusElement) return;
+        
+        switch (status) {
+            case 'thinking':
+                statusElement.textContent = 'Đang suy nghĩ...';
+                statusElement.className = 'status-thinking';
+                break;
+            case 'typing':
+                statusElement.textContent = 'Đang trả lời...';
+                statusElement.className = 'status-typing';
+                break;
+            case 'online':
+            default:
+                statusElement.textContent = 'Online';
+                statusElement.className = 'status-online';
+                break;
+        }
     }
 
     scrollToBottom() {
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        // Smooth scroll to bottom
+        if (this.settings.autoScroll) {
+            this.chatMessages.scrollTo({
+                top: this.chatMessages.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
     }
 
     playNotificationSound() {

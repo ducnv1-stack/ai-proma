@@ -75,7 +75,7 @@ async def chat_demo(data: ChatMessage):
                 ]
                 
                 for i, response_part in enumerate(responses):
-                    await asyncio.sleep(0.3)
+                    await asyncio.sleep(0.5)  # Faster mock response
                     event_data = {
                         "content": response_part,
                         "session_id": data.session_id,
@@ -103,13 +103,16 @@ async def chat_demo(data: ChatMessage):
                 {"role": "user", "content": data.message}
             ]
 
-            # Stream response from OpenAI
+            # Stream response from OpenAI with optimized settings
             stream = await openai_client.chat.completions.create(
                 model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
                 messages=messages,
                 stream=True,
-                temperature=0.7,
-                max_tokens=1000
+                temperature=0.3,  # Lower temperature for faster, more focused responses
+                max_tokens=1500,  # Increased for more complete responses
+                top_p=0.9,       # Nucleus sampling for better quality
+                frequency_penalty=0.1,  # Reduce repetition
+                presence_penalty=0.1    # Encourage diverse responses
             )
 
             message_id = 0
