@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FARAMEX Chat Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .demo-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .demo-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .demo-header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .demo-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .demo-section h3 {
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .demo-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        .demo-button:hover {
+            transform: translateY(-2px);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        pre {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .feature-list li:before {
+            content: "✓ ";
+            color: #10b981;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🤖 FARAMEX AI Chat Interface</h1>
+            <p>Giao diện chat tích hợp với FARAMEX Multi-Agent System</p>
+        </div>
+
+        <div class="demo-section">
+            <h3>🚀 Khởi chạy Chat Interface</h3>
+            <p>Click vào nút bên dưới để mở giao diện chat:</p>
+            <button class="demo-button" onclick="openChat()">Mở Chat Interface</button>
+            <div id="chat-status" class="status info">
+                Sẵn sàng khởi chạy giao diện chat
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>🔧 Test API Connection</h3>
+            <p>Kiểm tra kết nối với FARAMEX API Server:</p>
+            <button class="demo-button" onclick="testAPI()">Test API Connection</button>
+            <button class="demo-button" onclick="testAgents()">Test Agents Endpoint</button>
+            <div id="api-status" class="status info">
+                Chưa test kết nối API
+            </div>
+            <pre id="api-response"></pre>
+        </div>
+
+        <div class="demo-section">
+            <h3>📋 Tính năng chính</h3>
+            <ul class="feature-list">
+                <li>Giao diện chat hiện đại và responsive</li>
+                <li>Streaming response real-time từ AI Agent</li>
+                <li>Upload và gửi hình ảnh</li>
+                <li>Authentication và session management</li>
+                <li>Typing indicator và sound notifications</li>
+                <li>Auto-scroll và message formatting</li>
+                <li>Settings panel có thể tùy chỉnh</li>
+                <li>Modal cho xem hình ảnh full-size</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h3>⚙️ Cấu hình và Khởi chạy Server</h3>
+            <p><strong>Bước 1:</strong> Cài đặt Python và dependencies:</p>
+            <pre># Cài đặt Python (nếu chưa có)
+# Download từ: https://www.python.org/downloads/
+
+# Cài đặt dependencies
+pip install fastapi uvicorn sqlalchemy databases asyncpg python-multipart</pre>
+            
+            <p><strong>Bước 2:</strong> Khởi chạy FARAMEX server:</p>
+            <pre># Mở terminal tại thư mục ai-server-main
+cd d:\CTY-Xcelbot\ai-server-main\ai-server-main
+
+# Chạy server
+python main.py
+
+# Hoặc nếu có nhiều phiên bản Python
+python3 main.py</pre>
+            
+            <p><strong>Bước 3:</strong> Kiểm tra server đang chạy tại:</p>
+            <pre>http://localhost:8000</pre>
+            
+            <p>Các endpoint được sử dụng:</p>
+            <pre>POST /api/v1/chat           - Chat với AI Agent
+POST /api/v1/session/create  - Tạo session mới
+GET  /api/v1/agents          - Lấy danh sách agents</pre>
+        </div>
+
+        <div class="demo-section">
+            <h3>🔐 Authentication Demo</h3>
+            <p>Để test, bạn có thể sử dụng thông tin demo:</p>
+            <pre>Username: demo_user
+Password: demo_password
+Workspace ID: demo_workspace
+Agent: facebook_marketing_agent</pre>
+            <p><strong>Lưu ý:</strong> Đây là demo mode, authentication thực tế cần được cấu hình với backend.</p>
+        </div>
+    </div>
+
+    <script>
+        function openChat() {
+            // Navigate to chat page in same tab
+            window.location.href = 'index.html';
+        }
+
+        async function testAPI() {
+            const statusDiv = document.getElementById('api-status');
+            const responseDiv = document.getElementById('api-response');
+            
+            statusDiv.innerHTML = '<div class="status info">🔄 Đang test kết nối API...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/docs');
+                if (response.ok) {
+                    statusDiv.innerHTML = '<div class="status success">✅ API Server đang hoạt động!</div>';
+                    responseDiv.textContent = `Status: ${response.status} ${response.statusText}\nAPI Documentation: http://localhost:8000/docs`;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                let errorMessage = `Error: ${error.message}\n\n`;
+                
+                if (error.message === 'Failed to fetch') {
+                    errorMessage += `🚨 LỖI KẾT NỐI - Server chưa chạy hoặc CORS issue\n\n`;
+                    errorMessage += `CÁCH KHẮC PHỤC:\n`;
+                    errorMessage += `1. Mở Command Prompt/Terminal\n`;
+                    errorMessage += `2. Chuyển đến thư mục: cd d:\\CTY-Xcelbot\\ai-server-main\\ai-server-main\n`;
+                    errorMessage += `3. Cài đặt dependencies: pip install fastapi uvicorn sqlalchemy databases asyncpg\n`;
+                    errorMessage += `4. Chạy server: python main.py\n`;
+                    errorMessage += `5. Kiểm tra server tại: http://localhost:8000/docs\n\n`;
+                    errorMessage += `Nếu vẫn lỗi, kiểm tra:\n`;
+                    errorMessage += `- Python đã được cài đặt chưa?\n`;
+                    errorMessage += `- Port 8000 có bị chiếm không?\n`;
+                    errorMessage += `- Firewall có block không?`;
+                } else {
+                    errorMessage += `Vui lòng đảm bảo:\n1. FARAMEX server đang chạy\n2. Server chạy tại http://localhost:8000\n3. CORS đã được cấu hình đúng`;
+                }
+                
+                statusDiv.innerHTML = '<div class="status error">❌ Không thể kết nối với API Server</div>';
+                responseDiv.textContent = errorMessage;
+            }
+        }
+
+        async function testAgents() {
+            const statusDiv = document.getElementById('api-status');
+            const responseDiv = document.getElementById('api-response');
+            
+            statusDiv.innerHTML = '<div class="status info">🔄 Đang test agents endpoint...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/agents');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML = '<div class="status success">✅ Agents endpoint hoạt động!</div>';
+                    responseDiv.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Lỗi khi test agents endpoint</div>';
+                responseDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Auto-test API on page load
+        window.addEventListener('load', () => {
+            setTimeout(testAPI, 1000);
+        });
+    </script>
+</body>
+</html>

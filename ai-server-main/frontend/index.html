@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FARAMEX AI Chat</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="header-left">
+                <div class="agent-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="agent-info">
+                    <h3 id="agent-name">FARAMEX Marketing Agent</h3>
+                    <span id="agent-status" class="status-online">Online</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="back-btn" class="icon-btn" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <button id="settings-btn" class="icon-btn">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button id="logout-btn" class="icon-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="chat-messages" id="chat-messages">
+            <div class="welcome-message">
+                <div class="agent-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <p>Xin chào! Tôi là FARAMEX Marketing Agent. Tôi có thể giúp bạn tạo nội dung marketing, thiết kế hình ảnh và tư vấn chiến lược Facebook Marketing. Hãy bắt đầu cuộc trò chuyện!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="typing-indicator" id="typing-indicator" style="display: none;">
+            <div class="agent-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area">
+            <div class="input-container">
+                <button id="attach-btn" class="icon-btn">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <input type="file" id="file-input" accept="image/*" multiple style="display: none;">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="message-input" 
+                        placeholder="Nhập tin nhắn của bạn..."
+                        rows="1"
+                        maxlength="4000"
+                    ></textarea>
+                    <div class="input-actions">
+                        <span id="char-count">0/4000</span>
+                        <button id="send-btn" class="send-btn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="attached-images" id="attached-images"></div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Đăng nhập FARAMEX</h2>
+            </div>
+            <div class="modal-body">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">Tên đăng nhập:</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Mật khẩu:</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="workspace-id">Workspace ID:</label>
+                        <input type="text" id="workspace-id" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="agent-select">Agent:</label>
+                        <select id="agent-select" required>
+                            <option value="facebook_marketing_agent">Facebook Marketing Agent</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="login-btn">Đăng nhập</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cài đặt</h2>
+                <button class="close-btn" id="close-settings">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="api-url">API URL:</label>
+                    <input type="text" id="api-url" value="http://localhost:8000">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="auto-scroll"> Tự động cuộn xuống
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="sound-notifications"> Âm thanh thông báo
+                    </label>
+                </div>
+                <button id="save-settings" class="login-btn">Lưu cài đặt</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
