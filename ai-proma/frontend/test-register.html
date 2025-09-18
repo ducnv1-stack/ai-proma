@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Đăng ký - Proma AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
+    <div class="bg-white rounded-lg p-8 w-96 shadow-lg">
+        <h1 class="text-2xl font-bold text-center mb-6">Test Đăng ký Proma AI</h1>
+        
+        <!-- Login Form -->
+        <div id="login-form-container">
+            <h2 class="text-xl font-bold mb-4">Đăng nhập</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Tên đăng nhập:</label>
+                    <input type="text" id="login-username" name="username" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Mật khẩu:</label>
+                    <input type="password" id="login-password" name="password" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <button type="submit" class="w-full bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 mb-2">
+                    Đăng nhập
+                </button>
+                <button type="button" onclick="showRegisterForm()" class="w-full bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600">
+                    Chưa có tài khoản? Đăng ký
+                </button>
+            </form>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form-container" style="display: none;">
+            <h2 class="text-xl font-bold mb-4">Đăng ký</h2>
+            <form id="register-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Tên đăng nhập:</label>
+                    <input type="text" id="register-username" name="username" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Mật khẩu:</label>
+                    <input type="password" id="register-password" name="password" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Xác nhận mật khẩu:</label>
+                    <input type="password" id="register-confirm-password" name="confirm_password" class="w-full p-2 border rounded-lg" required>
+                </div>
+                <button type="submit" class="w-full bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 mb-2">
+                    Đăng ký
+                </button>
+                <button type="button" onclick="showLoginForm()" class="w-full bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600">
+                    Đã có tài khoản? Đăng nhập
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="auth-loading" style="display: none;" class="text-center py-4">
+            <i class="fas fa-spinner fa-spin text-purple-600 text-2xl"></i>
+            <p class="mt-2 text-gray-600">Đang xử lý...</p>
+        </div>
+
+        <!-- Message -->
+        <div id="auth-message" style="display: none;" class="mt-4 p-3 rounded">
+        </div>
+    </div>
+
+    <script>
+        // Mock API URL
+        const apiUrl = 'http://localhost:8002';
+        
+        // Form elements
+        const loginFormContainer = document.getElementById('login-form-container');
+        const registerFormContainer = document.getElementById('register-form-container');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const authLoading = document.getElementById('auth-loading');
+        const authMessage = document.getElementById('auth-message');
+
+        // Form switching functions
+        function showLoginForm() {
+            hideAuthLoading();
+            loginFormContainer.style.display = 'block';
+            registerFormContainer.style.display = 'none';
+            // Don't hide success message when showing login form after successful registration
+        }
+
+        function showRegisterForm() {
+            hideAuthLoading();
+            loginFormContainer.style.display = 'none';
+            registerFormContainer.style.display = 'block';
+            hideAuthMessage();
+        }
+
+        function showAuthLoading() {
+            authLoading.style.display = 'block';
+            loginFormContainer.style.display = 'none';
+            registerFormContainer.style.display = 'none';
+            hideAuthMessage();
+        }
+
+        function hideAuthLoading() {
+            authLoading.style.display = 'none';
+        }
+
+        function showAuthError(message) {
+            authMessage.textContent = message;
+            authMessage.className = 'mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded';
+            authMessage.style.display = 'block';
+        }
+
+        function showAuthSuccess(message) {
+            authMessage.textContent = message;
+            authMessage.className = 'mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded';
+            authMessage.style.display = 'block';
+        }
+
+        function hideAuthMessage() {
+            authMessage.style.display = 'none';
+        }
+
+        // Mock register function
+        async function handleRegister(e) {
+            e.preventDefault();
+            showAuthLoading();
+
+            const formData = new FormData(e.target);
+            const username = formData.get('username');
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirm_password');
+
+            // Simulate validation
+            if (password !== confirmPassword) {
+                hideAuthLoading();
+                showRegisterForm();
+                showAuthError('Mật khẩu xác nhận không khớp.');
+                return;
+            }
+
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Mock successful registration
+            hideAuthLoading();
+            showLoginForm();
+            
+            // Clear register form
+            registerForm.reset();
+            
+            // Show success message
+            showAuthSuccess(`Đăng ký thành công! Vui lòng đăng nhập với tài khoản "${username}".`);
+            
+            // Auto-fill username in login form
+            const loginUsernameInput = document.getElementById('login-username');
+            if (loginUsernameInput) {
+                loginUsernameInput.value = username;
+            }
+        }
+
+        // Mock login function
+        async function handleLogin(e) {
+            e.preventDefault();
+            hideAuthMessage();
+            showAuthLoading();
+
+            const formData = new FormData(e.target);
+            const username = formData.get('username');
+            const password = formData.get('password');
+
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Mock successful login
+            hideAuthLoading();
+            showAuthSuccess(`Đăng nhập thành công! Chào mừng ${username}!`);
+        }
+
+        // Bind events
+        registerForm.addEventListener('submit', handleRegister);
+        loginForm.addEventListener('submit', handleLogin);
+
+        console.log('Test register page loaded successfully!');
+    </script>
+</body>
+</html>

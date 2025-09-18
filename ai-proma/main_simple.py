@@ -696,6 +696,21 @@ async def get_current_user_info(current_user = Depends(get_current_user)):
         created_at=current_user.created_at.isoformat() if current_user.created_at else None
     )
 
+@app.post("/api/v1/auth/logout")
+async def logout_user(current_user: dict = Depends(verify_token)):
+    """Logout user - invalidate token on client side"""
+    print(f"🚪 Logout request from user: {current_user.get('user_name', 'unknown')}")
+    
+    # Since we're using JWT tokens, we can't invalidate them server-side without a blacklist
+    # The client will handle removing the token from localStorage
+    # In a production system, you might want to implement a token blacklist
+    
+    return {
+        "message": "Đăng xuất thành công",
+        "status": "success",
+        "user_name": current_user.get("user_name", "unknown")
+    }
+
 @app.post("/api/v1/chat", response_model=ChatResponse)
 async def chat_with_ai(
     chat_request: ChatRequest,
@@ -861,14 +876,14 @@ def get_agent_prompt(agent_id: str) -> str:
 
 if __name__ == "__main__":
     print("Starting Proma AI Server (Demo Mode)")
-    print("Frontend: http://localhost:8000/frontend/")
-    print("Demo Page: http://localhost:8000/frontend/demo.html")
-    print("Chat Interface: http://localhost:8000/frontend/index.html")
+    print("Frontend: http://localhost:8002/frontend/")
+    print("Demo Page: http://localhost:8002/frontend/demo.html")
+    print("Chat Interface: http://localhost:8002/frontend/index.html")
     
     import uvicorn
     uvicorn.run(
         app, 
         host="0.0.0.0",
-        port=8000,
+        port=8002,
         log_level="info"
     )

@@ -1,7 +1,7 @@
 // Dashboard Navigation and Chat Integration
 class PromaDashboard {
     constructor() {
-        this.apiUrl = 'http://localhost:8000';
+        this.apiUrl = 'http://localhost:8002';
         this.token = null;
         this.sessionId = null;
         this.workspaceId = null;
@@ -52,6 +52,18 @@ class PromaDashboard {
         this.agentStatus = document.getElementById('agent-status');
         this.aiStatus = document.getElementById('ai-status');
         this.aiThinking = document.getElementById('ai-thinking');
+
+        // User menu elements
+        this.userMenuButton = document.getElementById('user-menu-button');
+        this.userDropdown = document.getElementById('user-dropdown');
+        this.userMenuIcon = document.getElementById('user-menu-icon');
+        this.logoutButton = document.getElementById('logout-button');
+        
+        // Header user menu elements
+        this.headerUserMenu = document.getElementById('header-user-menu');
+        this.headerDropdown = document.getElementById('header-dropdown');
+        this.headerCurrentUser = document.getElementById('header-current-user');
+        this.headerLogoutButton = document.getElementById('header-logout-button');
     }
 
     bindEvents() {
@@ -103,6 +115,46 @@ class PromaDashboard {
         if (this.fileInput) {
             this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         }
+
+        // User menu events
+        if (this.userMenuButton) {
+            this.userMenuButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleUserDropdown();
+            });
+        }
+
+        if (this.headerUserMenu) {
+            this.headerUserMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleHeaderDropdown();
+            });
+        }
+
+        // Logout button events
+        if (this.logoutButton) {
+            this.logoutButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleLogout();
+            });
+        }
+
+        if (this.headerLogoutButton) {
+            this.headerLogoutButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleLogout();
+            });
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (this.userDropdown && !this.userDropdown.classList.contains('hidden')) {
+                this.hideUserDropdown();
+            }
+            if (this.headerDropdown && !this.headerDropdown.classList.contains('hidden')) {
+                this.hideHeaderDropdown();
+            }
+        });
     }
 
     showSection(sectionName) {
@@ -377,6 +429,7 @@ class PromaDashboard {
     // Authentication methods
     async handleLogin(e) {
         e.preventDefault();
+        this.hideAuthError(); // Hide any previous messages
         this.showAuthLoading();
 
         const formData = new FormData(e.target);
@@ -426,69 +479,96 @@ class PromaDashboard {
 
     async handleRegister(e) {
         e.preventDefault();
+        console.log('📝 Register form submitted');
+        
+        this.hideAuthError(); // Hide any previous error messages
         this.showAuthLoading();
 
         const formData = new FormData(e.target);
         const username = formData.get('username');
         const password = formData.get('password');
         const confirmPassword = formData.get('confirm_password');
-        const workspaceId = 'default';
 
+        console.log(`📝 Register attempt for user: ${username}`);
+
+        // Validate password confirmation
         if (password !== confirmPassword) {
+            console.log('❌ Password confirmation mismatch');
             this.hideAuthLoading();
             this.showRegisterForm();
             this.showAuthError('Mật khẩu xác nhận không khớp.');
             return;
         }
 
+        // Validate password length
+        if (password.length < 6) {
+            console.log('❌ Password too short');
+            this.hideAuthLoading();
+            this.showRegisterForm();
+            this.showAuthError('Mật khẩu phải có ít nhất 6 ký tự.');
+            return;
+        }
+
         try {
+            console.log(`🚀 Calling register API: ${this.apiUrl}/api/v1/auth/register`);
+            
             const response = await fetch(`${this.apiUrl}/api/v1/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     user_name: username,
                     user_pass: password,
-                    confirm_password: confirmPassword,
-                    workspace_id: workspaceId
+                    confirm_password: confirmPassword
                 })
             });
 
+            console.log(`📡 Register response status: ${response.status}`);
             const data = await response.json();
+            console.log('📡 Register response data:', data);
 
-            if (data.access_token) {
-                this.token = data.access_token;
-                this.currentUser = data.user.user_name;
-                this.workspaceId = data.user.workspace_id;
-                this.agentId = 'project_manager_agent';
-
-                // Store in localStorage
-                localStorage.setItem('proma_token', this.token);
-                localStorage.setItem('proma_user', this.currentUser);
-                localStorage.setItem('proma_workspace', this.workspaceId);
-                localStorage.setItem('proma_agent', this.agentId);
-                localStorage.setItem('proma_user_data', JSON.stringify(data.user));
-
-                this.authModal.style.display = 'none';
-                this.updateUserInfo();
-                this.clearChat();
+            if (response.ok && data.access_token) {
+                console.log('✅ Registration successful!');
+                
+                // Clear register form first
+                if (this.registerForm) {
+                    this.registerForm.reset();
+                }
+                
+                // Hide loading and show login form
+                this.hideAuthLoading();
+                this.showLoginForm();
+                
+                // Show success message
+                this.showAuthSuccess(`🎉 Đăng ký thành công! Vui lòng đăng nhập với tài khoản "${username}".`);
+                
+                // Auto-fill username in login form
+                const loginUsernameInput = document.getElementById('login-username');
+                if (loginUsernameInput) {
+                    loginUsernameInput.value = username;
+                    loginUsernameInput.focus();
+                }
+                
             } else {
+                console.log('❌ Registration failed:', data.detail);
                 this.hideAuthLoading();
                 this.showRegisterForm();
                 this.showAuthError(data.detail || 'Đăng ký thất bại. Vui lòng thử lại.');
             }
         } catch (error) {
-            console.error('Register error:', error);
+            console.error('❌ Register error:', error);
             this.hideAuthLoading();
             this.showRegisterForm();
-            this.showAuthError('Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.');
+            this.showAuthError('Có lỗi xảy ra khi đăng ký. Vui lòng kiểm tra kết nối mạng và thử lại.');
         }
     }
 
     checkAuthentication() {
+        console.log('🔐 Checking authentication...');
         const token = localStorage.getItem('proma_token');
         const user = localStorage.getItem('proma_user');
 
         if (token && user) {
+            console.log('✅ User authenticated:', user);
             this.token = token;
             this.currentUser = user;
             this.workspaceId = localStorage.getItem('proma_workspace') || 'default';
@@ -501,6 +581,7 @@ class PromaDashboard {
                 this.addWelcomeMessage();
             }, 500);
         } else {
+            console.log('❌ User not authenticated, showing login form');
             this.authModal.style.display = 'flex';
             this.showLoginForm();
         }
@@ -515,6 +596,11 @@ class PromaDashboard {
             this.currentUserEl.classList.add('text-black');
         }
         
+        // Update header user info
+        if (this.headerCurrentUser) {
+            this.headerCurrentUser.textContent = this.currentUser || 'User';
+        }
+        
         // Update online status to green color
         const onlineStatusEl = document.querySelector('#current-user').nextElementSibling;
         if (onlineStatusEl) {
@@ -525,42 +611,206 @@ class PromaDashboard {
         }
     }
 
+    // User dropdown methods
+    toggleUserDropdown() {
+        if (this.userDropdown) {
+            const isHidden = this.userDropdown.classList.contains('hidden');
+            if (isHidden) {
+                this.showUserDropdown();
+            } else {
+                this.hideUserDropdown();
+            }
+        }
+    }
+
+    showUserDropdown() {
+        if (this.userDropdown) {
+            this.userDropdown.classList.remove('hidden');
+            if (this.userMenuIcon) {
+                this.userMenuIcon.classList.remove('fa-chevron-up');
+                this.userMenuIcon.classList.add('fa-chevron-down');
+            }
+        }
+    }
+
+    hideUserDropdown() {
+        if (this.userDropdown) {
+            this.userDropdown.classList.add('hidden');
+            if (this.userMenuIcon) {
+                this.userMenuIcon.classList.remove('fa-chevron-down');
+                this.userMenuIcon.classList.add('fa-chevron-up');
+            }
+        }
+    }
+
+    // Header dropdown methods
+    toggleHeaderDropdown() {
+        if (this.headerDropdown) {
+            const isHidden = this.headerDropdown.classList.contains('hidden');
+            if (isHidden) {
+                this.showHeaderDropdown();
+            } else {
+                this.hideHeaderDropdown();
+            }
+        }
+    }
+
+    showHeaderDropdown() {
+        if (this.headerDropdown) {
+            this.headerDropdown.classList.remove('hidden');
+        }
+    }
+
+    hideHeaderDropdown() {
+        if (this.headerDropdown) {
+            this.headerDropdown.classList.add('hidden');
+        }
+    }
+
+    // Logout functionality
+    async handleLogout() {
+        console.log('🚪 Logout initiated');
+        
+        try {
+            // Call logout API endpoint
+            const response = await fetch(`${this.apiUrl}/api/v1/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.token}`
+                }
+            });
+
+            const data = await response.json();
+            console.log('🚪 Logout response:', data);
+
+            // Clear all stored data
+            this.clearAuthData();
+
+            // Hide dropdowns
+            this.hideUserDropdown();
+            this.hideHeaderDropdown();
+
+            // Clear chat
+            this.clearChat();
+
+            // Show auth modal
+            this.authModal.style.display = 'flex';
+            this.showLoginForm();
+
+            // Show success message
+            this.showAuthSuccess('Đăng xuất thành công!');
+
+            console.log('✅ Logout completed successfully');
+
+        } catch (error) {
+            console.error('❌ Logout error:', error);
+            
+            // Even if API call fails, clear local data
+            this.clearAuthData();
+            this.authModal.style.display = 'flex';
+            this.showLoginForm();
+            this.showAuthError('Đã đăng xuất (có lỗi kết nối server)');
+        }
+    }
+
+    clearAuthData() {
+        // Clear instance variables
+        this.token = null;
+        this.currentUser = null;
+        this.sessionId = null;
+        this.workspaceId = null;
+
+        // Clear localStorage
+        localStorage.removeItem('proma_token');
+        localStorage.removeItem('proma_user');
+        localStorage.removeItem('proma_workspace');
+        localStorage.removeItem('proma_agent');
+        localStorage.removeItem('proma_user_data');
+
+        console.log('🧹 Auth data cleared');
+    }
+
     // Auth UI methods
     showAuthLoading() {
-        if (this.authLoading) this.authLoading.classList.remove('hidden');
-        if (this.loginFormContainer) this.loginFormContainer.classList.add('hidden');
-        if (this.registerFormContainer) this.registerFormContainer.classList.add('hidden');
+        console.log('🔄 Showing auth loading...');
+        if (this.authLoading) {
+            this.authLoading.classList.remove('hidden');
+            this.authLoading.style.display = 'block';
+        }
+        if (this.loginFormContainer) {
+            this.loginFormContainer.classList.add('hidden');
+            this.loginFormContainer.style.display = 'none';
+        }
+        if (this.registerFormContainer) {
+            this.registerFormContainer.classList.add('hidden');
+            this.registerFormContainer.style.display = 'none';
+        }
         this.hideAuthError();
     }
 
     hideAuthLoading() {
-        if (this.authLoading) this.authLoading.classList.add('hidden');
+        console.log('⏹️ Hiding auth loading...');
+        if (this.authLoading) {
+            this.authLoading.classList.add('hidden');
+            this.authLoading.style.display = 'none';
+        }
     }
 
     showLoginForm() {
+        console.log('📝 Showing login form...');
         this.hideAuthLoading();
-        if (this.loginFormContainer) this.loginFormContainer.classList.remove('hidden');
-        if (this.registerFormContainer) this.registerFormContainer.classList.add('hidden');
-        this.hideAuthError();
+        if (this.loginFormContainer) {
+            this.loginFormContainer.classList.remove('hidden');
+            this.loginFormContainer.style.display = 'block';
+        }
+        if (this.registerFormContainer) {
+            this.registerFormContainer.classList.add('hidden');
+            this.registerFormContainer.style.display = 'none';
+        }
+        // Don't hide success message when showing login form after successful registration
+        // this.hideAuthError();
     }
 
     showRegisterForm() {
+        console.log('📝 Showing register form...');
         this.hideAuthLoading();
-        if (this.loginFormContainer) this.loginFormContainer.classList.add('hidden');
-        if (this.registerFormContainer) this.registerFormContainer.classList.remove('hidden');
+        if (this.loginFormContainer) {
+            this.loginFormContainer.classList.add('hidden');
+            this.loginFormContainer.style.display = 'none';
+        }
+        if (this.registerFormContainer) {
+            this.registerFormContainer.classList.remove('hidden');
+            this.registerFormContainer.style.display = 'block';
+        }
         this.hideAuthError();
     }
 
     showAuthError(message) {
+        console.log('❌ Showing error:', message);
         if (this.authError) {
             this.authError.textContent = message;
             this.authError.classList.remove('hidden');
+            this.authError.style.display = 'block';
+            this.authError.className = 'mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded';
+        }
+    }
+
+    showAuthSuccess(message) {
+        console.log('✅ Showing success:', message);
+        if (this.authError) {
+            this.authError.textContent = message;
+            this.authError.classList.remove('hidden');
+            this.authError.style.display = 'block';
+            this.authError.className = 'mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded';
         }
     }
 
     hideAuthError() {
+        console.log('🙈 Hiding auth error/success message');
         if (this.authError) {
             this.authError.classList.add('hidden');
+            this.authError.style.display = 'none';
         }
     }
 
