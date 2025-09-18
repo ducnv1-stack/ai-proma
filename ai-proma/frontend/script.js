@@ -3,13 +3,13 @@ function goBack() {
     window.location.href = 'demo.html';
 }
 
-class FaramexChat {
+class PromaChat {
     constructor() {
-        this.apiUrl = 'http://localhost:8000';
+        this.apiUrl = 'http://localhost:8003';
         this.token = null;
         this.sessionId = null;
         this.workspaceId = null;
-        this.agentId = 'facebook_marketing_agent';
+        this.agentId = 'project_manager_agent';
         this.currentUser = null;
         this.attachedImages = [];
         this.settings = {
@@ -33,7 +33,7 @@ class FaramexChat {
         this.attachedImagesContainer = document.getElementById('attached-images');
         this.typingIndicator = document.getElementById('typing-indicator');
         this.charCount = document.getElementById('char-count');
-        
+
         // Typing indicator state
         this.typingTimeout = null;
         this.isTypingVisible = false;
@@ -59,23 +59,23 @@ class FaramexChat {
         // Message input events
         this.messageInput.addEventListener('input', () => this.handleInputChange());
         this.messageInput.addEventListener('keydown', (e) => this.handleKeyDown(e));
-        
+
         // Send button
         this.sendBtn.addEventListener('click', () => this.sendMessage());
-        
+
         // File attachment
         this.attachBtn.addEventListener('click', () => this.fileInput.click());
         this.fileInput.addEventListener('change', (e) => this.handleFileSelection(e));
-        
+
         // Modal events
         this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
         this.settingsBtn.addEventListener('click', () => this.showSettings());
         this.logoutBtn.addEventListener('click', () => this.logout());
-        
+
         // Settings modal
         document.getElementById('close-settings').addEventListener('click', () => this.hideSettings());
         document.getElementById('save-settings').addEventListener('click', () => this.saveSettings());
-        
+
         // Close modals when clicking outside
         window.addEventListener('click', (e) => {
             if (e.target === this.loginModal) this.hideLogin();
@@ -86,15 +86,15 @@ class FaramexChat {
     handleInputChange() {
         const length = this.messageInput.value.length;
         this.charCount.textContent = `${length}/4000`;
-        
+
         // Auto-resize textarea
         this.messageInput.style.height = 'auto';
         this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 120) + 'px';
-        
+
         // Enable/disable send button with visual feedback
         const isDisabled = length === 0 && this.attachedImages.length === 0;
         this.sendBtn.disabled = isDisabled;
-        
+
         if (isDisabled) {
             this.sendBtn.style.opacity = '0.5';
             this.sendBtn.style.transform = 'scale(0.95)';
@@ -131,7 +131,7 @@ class FaramexChat {
                 url: e.target.result,
                 id: Date.now() + Math.random()
             };
-            
+
             this.attachedImages.push(imageData);
             this.renderAttachedImages();
             this.handleInputChange(); // Update send button state
@@ -164,12 +164,12 @@ class FaramexChat {
         // For demo purposes, we'll use placeholder URLs
         // In production, you would upload to your image service
         const imageUrls = [];
-        
+
         for (const image of this.attachedImages) {
             // Simulate image upload - replace with actual upload logic
             const formData = new FormData();
             formData.append('image', image.file);
-            
+
             try {
                 // This would be your actual image upload endpoint
                 // const response = await fetch(`${this.apiUrl}/upload-image`, {
@@ -178,14 +178,14 @@ class FaramexChat {
                 // });
                 // const result = await response.json();
                 // imageUrls.push(result.url);
-                
+
                 // For demo, use data URL
                 imageUrls.push(image.url);
             } catch (error) {
                 console.error('Error uploading image:', error);
             }
         }
-        
+
         return imageUrls;
     }
 
@@ -199,7 +199,7 @@ class FaramexChat {
 
         // Show typing indicator immediately
         this.showTypingIndicator();
-        
+
         // Set fallback timeout to hide typing indicator if something goes wrong
         this.setTypingTimeout();
 
@@ -260,7 +260,8 @@ class FaramexChat {
             let updateCounter = 0;
             const UPDATE_FREQUENCY = 3; // Update UI every 3 chunks for smoother performance
             let firstContentReceived = false;
-            
+            let messageCreationPending = false;
+
             // Ensure typing indicator is visible while waiting for first response
             if (!this.isTypingVisible) {
                 this.showTypingIndicator();
@@ -268,10 +269,16 @@ class FaramexChat {
 
             while (true) {
                 const { done, value } = await reader.read();
-                
+
                 if (done) {
-                    // Final update
-                    if (messageElement && agentMessage) {
+                    // Final update - wait for message element to be created if pending
+                    if (messageCreationPending) {
+                        setTimeout(() => {
+                            if (messageElement && agentMessage) {
+                                this.updateMessage(messageElement, agentMessage);
+                            }
+                        }, 150); // Wait a bit longer than creation delay
+                    } else if (messageElement && agentMessage) {
                         this.updateMessage(messageElement, agentMessage);
                     }
                     // Ensure typing indicator is hidden when stream ends
@@ -292,18 +299,29 @@ class FaramexChat {
                             if (data.content) {
                                 agentMessage += data.content;
                                 updateCounter++;
-                                
-                                // Create message element on first content
-                                if (!messageElement) {
-                                    messageElement = this.addMessage('agent', '', []);
-                                    // Hide typing indicator only when we actually display content
+
+                                // Handle first content received
+                                if (!firstContentReceived && !messageCreationPending) {
+                                    firstContentReceived = true;
+                                    messageCreationPending = true;
+
+                                    // Hide typing indicator first
                                     this.hideTypingIndicator();
                                     this.updateAgentStatus('typing');
-                                    firstContentReceived = true;
+
+                                    // Wait 0.1 second before showing content to avoid overlap
+                                    setTimeout(() => {
+                                        messageElement = this.addMessage('agent', '', []);
+                                        messageCreationPending = false;
+                                        // Update with accumulated content
+                                        if (agentMessage) {
+                                            this.updateMessage(messageElement, agentMessage);
+                                        }
+                                    }, 100); // 0.1 second delay (100ms)
                                 }
-                                
-                                // Update UI periodically for better performance
-                                if (updateCounter % UPDATE_FREQUENCY === 0) {
+
+                                // Update UI periodically for better performance (only if message element exists and not pending creation)
+                                if (messageElement && !messageCreationPending && updateCounter % UPDATE_FREQUENCY === 0) {
                                     this.updateMessage(messageElement, agentMessage);
                                 }
                             }
@@ -317,7 +335,7 @@ class FaramexChat {
             if (this.settings.soundNotifications) {
                 this.playNotificationSound();
             }
-            
+
         } catch (error) {
             // Ensure typing indicator is hidden on error
             this.hideTypingIndicator();
@@ -328,10 +346,10 @@ class FaramexChat {
     addMessage(sender, content, images = []) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
-        
-        const time = new Date().toLocaleTimeString('vi-VN', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+
+        const time = new Date().toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit'
         });
 
         let imagesHtml = '';
@@ -353,7 +371,7 @@ class FaramexChat {
         `;
 
         this.chatMessages.appendChild(messageDiv);
-        
+
         if (this.settings.autoScroll) {
             this.scrollToBottom();
         }
@@ -383,36 +401,36 @@ class FaramexChat {
     showTypingIndicator() {
         // Clear any existing timeout
         this.clearTypingTimeout();
-        
+
         this.isTypingVisible = true;
         this.typingIndicator.style.display = 'flex';
         this.typingIndicator.classList.remove('hide');
         this.typingIndicator.classList.add('show');
-        
+
         // Update agent status to show thinking
         this.updateAgentStatus('thinking');
-        
+
         this.scrollToBottom();
     }
 
     hideTypingIndicator() {
         // Clear any existing timeout
         this.clearTypingTimeout();
-        
+
         this.isTypingVisible = false;
         this.typingIndicator.classList.remove('show');
         this.typingIndicator.classList.add('hide');
-        
+
         // Update agent status back to online
         this.updateAgentStatus('online');
-        
+
         setTimeout(() => {
             if (!this.isTypingVisible) { // Only hide if still should be hidden
                 this.typingIndicator.style.display = 'none';
             }
         }, 300);
     }
-    
+
     setTypingTimeout() {
         // Set a fallback timeout to hide typing indicator after 30 seconds
         this.typingTimeout = setTimeout(() => {
@@ -420,18 +438,18 @@ class FaramexChat {
             this.hideTypingIndicator();
         }, 30000); // 30 seconds timeout
     }
-    
+
     clearTypingTimeout() {
         if (this.typingTimeout) {
             clearTimeout(this.typingTimeout);
             this.typingTimeout = null;
         }
     }
-    
+
     updateAgentStatus(status) {
         const statusElement = this.agentStatus;
         if (!statusElement) return;
-        
+
         switch (status) {
             case 'thinking':
                 statusElement.textContent = 'Đang suy nghĩ...';
@@ -464,15 +482,15 @@ class FaramexChat {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
-        
+
         oscillator.frequency.value = 800;
         oscillator.type = 'sine';
         gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-        
+
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.5);
     }
@@ -480,7 +498,7 @@ class FaramexChat {
     // Authentication methods
     async handleLogin(e) {
         e.preventDefault();
-        
+
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         this.workspaceId = document.getElementById('workspace-id').value;
@@ -491,13 +509,13 @@ class FaramexChat {
             // In production, you would call your authentication endpoint
             this.token = 'demo-token-' + Date.now();
             this.currentUser = { username, workspaceId: this.workspaceId };
-            
+
             // Create session
             await this.createSession();
-            
+
             this.hideLogin();
             this.updateUI();
-            
+
         } catch (error) {
             alert('Đăng nhập thất bại: ' + error.message);
         }
@@ -525,7 +543,7 @@ class FaramexChat {
 
             const result = await response.json();
             this.sessionId = result.session_id;
-            
+
         } catch (error) {
             console.error('Error creating session:', error);
             // For demo, create a mock session
@@ -534,9 +552,9 @@ class FaramexChat {
     }
 
     checkAuthentication() {
-        const savedToken = localStorage.getItem('faramex_token');
-        const savedUser = localStorage.getItem('faramex_user');
-        
+        const savedToken = localStorage.getItem('proma_token');
+        const savedUser = localStorage.getItem('proma_user');
+
         if (savedToken && savedUser) {
             this.token = savedToken;
             this.currentUser = JSON.parse(savedUser);
@@ -555,16 +573,16 @@ class FaramexChat {
     hideLogin() {
         this.loginModal.classList.remove('show');
         // Save authentication
-        localStorage.setItem('faramex_token', this.token);
-        localStorage.setItem('faramex_user', JSON.stringify(this.currentUser));
+        localStorage.setItem('proma_token', this.token);
+        localStorage.setItem('proma_user', JSON.stringify(this.currentUser));
     }
 
     logout() {
         this.token = null;
         this.currentUser = null;
         this.sessionId = null;
-        localStorage.removeItem('faramex_token');
-        localStorage.removeItem('faramex_user');
+        localStorage.removeItem('proma_token');
+        localStorage.removeItem('proma_user');
         this.showLogin();
         this.clearChat();
     }
@@ -576,7 +594,7 @@ class FaramexChat {
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="message-content">
-                    <p>Xin chào! Tôi là FARAMEX Marketing Agent. Tôi có thể giúp bạn tạo nội dung marketing, thiết kế hình ảnh và tư vấn chiến lược Facebook Marketing. Hãy bắt đầu cuộc trò chuyện!</p>
+                    <p>Xin chào! Tôi là Proma Project Manager Agent. Tôi có thể giúp bạn quản lý dự án, tạo task, phân công công việc và theo dõi tiến độ. Hãy bắt đầu cuộc trò chuyện!</p>
                 </div>
             </div>
         `;
@@ -605,17 +623,17 @@ class FaramexChat {
         this.apiUrl = this.apiUrlInput.value;
         this.settings.autoScroll = this.autoScrollCheckbox.checked;
         this.settings.soundNotifications = this.soundNotificationsCheckbox.checked;
-        
-        localStorage.setItem('faramex_settings', JSON.stringify({
+
+        localStorage.setItem('proma_settings', JSON.stringify({
             apiUrl: this.apiUrl,
             ...this.settings
         }));
-        
+
         this.hideSettings();
     }
 
     loadSettings() {
-        const savedSettings = localStorage.getItem('faramex_settings');
+        const savedSettings = localStorage.getItem('proma_settings');
         if (savedSettings) {
             const settings = JSON.parse(savedSettings);
             this.apiUrl = settings.apiUrl || this.apiUrl;
@@ -641,7 +659,7 @@ class FaramexChat {
             </div>
         `;
         document.body.appendChild(modal);
-        
+
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.remove();
@@ -652,5 +670,5 @@ class FaramexChat {
 
 // Initialize chat when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.chat = new FaramexChat();
+    window.chat = new PromaChat();
 });

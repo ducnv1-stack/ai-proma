@@ -7,9 +7,9 @@ from configs import get_ai_settings
 
 ai_settings = get_ai_settings()
 
-facebook_marketing_agent = Agent(
-    name="facebook_marketing_agent",
-    description="Famarex – Nhân viên Marketing Facebook xuất sắc.",
+project_manager_agent = Agent(
+    name="project_manager_agent",
+    description="Proma – Chuyên gia quản lý dự án xuất sắc.",
     instruction=get_system_message(),
     tools=[generate_image_tool],
     model=LiteLlm(

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FARAMEX AI Chat</title>
+    <title>Proma AI Chat</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <div class="chat-container">
         <!-- Header -->
@@ -16,7 +18,7 @@
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="agent-info">
-                    <h3 id="agent-name">FARAMEX Marketing Agent</h3>
+                    <h3 id="agent-name">Proma Project Manager Agent</h3>
                     <span id="agent-status" class="status-online">Online</span>
                 </div>
             </div>
@@ -40,7 +42,7 @@
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="message-content">
-                    <p>Xin chào! Tôi là FARAMEX Marketing Agent. Tôi có thể giúp bạn tạo nội dung marketing, thiết kế hình ảnh và tư vấn chiến lược Facebook Marketing. Hãy bắt đầu cuộc trò chuyện!</p>
+                    <p>Xin chào! Tôi là Proma Project Manager Agent. Tôi có thể giúp bạn quản lý dự án, tạo task, phân công công việc và theo dõi tiến độ. Hãy bắt đầu cuộc trò chuyện!</p>
                 </div>
             </div>
         </div>
@@ -65,12 +67,8 @@
                 </button>
                 <input type="file" id="file-input" accept="image/*" multiple style="display: none;">
                 <div class="input-wrapper">
-                    <textarea 
-                        id="message-input" 
-                        placeholder="Nhập tin nhắn của bạn..."
-                        rows="1"
-                        maxlength="4000"
-                    ></textarea>
+                    <textarea id="message-input" placeholder="Nhập tin nhắn của bạn..." rows="1"
+                        maxlength="4000"></textarea>
                     <div class="input-actions">
                         <span id="char-count">0/4000</span>
                         <button id="send-btn" class="send-btn" disabled>
@@ -87,7 +85,7 @@
     <div class="modal" id="login-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Đăng nhập FARAMEX</h2>
+                <h2>Đăng nhập Proma</h2>
             </div>
             <div class="modal-body">
                 <form id="login-form">
@@ -106,7 +104,7 @@
                     <div class="form-group">
                         <label for="agent-select">Agent:</label>
                         <select id="agent-select" required>
-                            <option value="facebook_marketing_agent">Facebook Marketing Agent</option>
+                            <option value="project_manager_agent">Proma Project Manager Agent</option>
                         </select>
                     </div>
                     <button type="submit" class="login-btn">Đăng nhập</button>
@@ -127,7 +125,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="api-url">API URL:</label>
-                    <input type="text" id="api-url" value="http://localhost:8000">
+                    <input type="text" id="api-url" value="http://localhost:8003">
                 </div>
                 <div class="form-group">
                     <label>
@@ -146,4 +144,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>

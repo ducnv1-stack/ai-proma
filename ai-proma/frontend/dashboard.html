@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proma AI Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="dashboard-styles.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .chat-container {
+            display: none;
+        }
+
+        .chat-container.active {
+            display: flex;
+        }
+
+        .nav-item {
+            color: black !important;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:not(.bg-purple-600):hover {
+            background-color: rgb(147, 51, 234) !important;
+            color: white !important;
+        }
+
+        .nav-item:not(.bg-purple-600):hover i,
+        .nav-item:not(.bg-purple-600):hover span {
+            color: white !important;
+        }
+
+        /* Keep active item styling */
+        .nav-item.bg-purple-600 {
+            background-color: rgb(147, 51, 234) !important;
+            color: white !important;
+        }
+
+        .nav-item.bg-purple-600 i,
+        .nav-item.bg-purple-600 span {
+            color: white !important;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 flex flex-col bg-white text-gray-900 border-r border-gray-200">
+            <!-- Logo -->
+            <div class="h-16 flex items-center px-6 border-b border-gray-200">
+                <h1 class="text-xl font-bold text-gray-900">Proma AI</h1>
+            </div>
+
+            <!-- Main Navigation -->
+            <nav class="flex-1 px-4 py-4 space-y-2">
+                <a href="#" onclick="showSection('dashboard')"
+                    class="nav-item flex items-center px-4 py-2 text-white bg-purple-600 rounded-lg">
+                    <i class="fas fa-home w-5 h-5 mr-3"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" onclick="showSection('chat')" class="nav-item flex items-center px-4 py-2 rounded-lg">
+                    <i class="fas fa-comments w-5 h-5 mr-3"></i>
+                    <span>Chat AI</span>
+                </a>
+                <a href="#" onclick="showSection('agents')" class="nav-item flex items-center px-4 py-2 rounded-lg">
+                    <i class="fas fa-robot w-5 h-5 mr-3"></i>
+                    <span>Agents</span>
+                </a>
+                <a href="#" onclick="showSection('files')" class="nav-item flex items-center px-4 py-2 rounded-lg">
+                    <i class="fas fa-folder w-5 h-5 mr-3"></i>
+                    <span>File Management</span>
+                </a>
+                <a href="#" onclick="showSection('tasks')" class="nav-item flex items-center px-4 py-2 rounded-lg">
+                    <i class="fas fa-tasks w-5 h-5 mr-3"></i>
+                    <span>Tasks</span>
+                </a>
+            </nav>
+
+            <!-- User Section -->
+            <div class="px-4 pb-4 border-t border-gray-200 pt-4">
+                <div class="flex items-center">
+                    <img class="h-8 w-8 rounded-full" src="https://placehold.co/32x32/667eea/ffffff?text=U" alt="User">
+                    <div class="ml-3">
+                        <p class="text-sm font-medium" style="color: rgb(228, 228, 231);" id="current-user">Demo User
+                        </p>
+                        <p class="text-xs" style="color: rgb(228, 228, 231); opacity: 0.7;">Online</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Header -->
+            <header class="h-16 flex justify-between items-center bg-white border-b px-6">
+                <div class="flex items-center">
+                    <h2 class="text-lg font-semibold text-gray-800" id="page-title">Dashboard</h2>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-500 hover:text-gray-600">
+                        <i class="fas fa-bell w-5 h-5"></i>
+                    </button>
+                    <button class="text-gray-500 hover:text-gray-600">
+                        <i class="fas fa-cog w-5 h-5"></i>
+                    </button>
+                    <img class="h-8 w-8 rounded-full" src="https://placehold.co/32x32/667eea/ffffff?text=A"
+                        alt="Avatar">
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <main class="flex-1 overflow-hidden">
+                <!-- Dashboard Section -->
+                <div id="dashboard-section" class="section-content h-full overflow-y-auto bg-gray-50 p-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+                            <p class="mt-2 text-gray-600">Quản lý AI agents và tương tác với hệ thống Proma</p>
+                        </div>
+                        <button class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700">
+                            <i class="fas fa-plus mr-2"></i>Tạo Agent Mới
+                        </button>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="stats-card bg-white p-6 rounded-lg shadow cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-purple-100 rounded-lg">
+                                    <i class="fas fa-comments text-purple-600 text-lg"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-600">Tin nhắn hôm nay</p>
+                                    <p class="text-2xl font-bold text-gray-900">1,234</p>
+                                    <p class="text-xs text-green-500">↑ 12% so với hôm qua</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stats-card bg-white p-6 rounded-lg shadow cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-green-100 rounded-lg">
+                                    <i class="fas fa-robot text-green-600 text-lg"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-600">Agents hoạt động</p>
+                                    <p class="text-2xl font-bold text-gray-900">5</p>
+                                    <p class="text-xs text-blue-500">Tất cả đang online</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stats-card bg-white p-6 rounded-lg shadow cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-blue-100 rounded-lg">
+                                    <i class="fas fa-users text-blue-600 text-lg"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-600">Người dùng</p>
+                                    <p class="text-2xl font-bold text-gray-900">89</p>
+                                    <p class="text-xs text-green-500">↑ 5 người mới</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stats-card bg-white p-6 rounded-lg shadow cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-yellow-100 rounded-lg">
+                                    <i class="fas fa-chart-line text-yellow-600 text-lg"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-600">Hiệu suất</p>
+                                    <p class="text-2xl font-bold text-gray-900">98%</p>
+                                    <p class="text-xs text-green-500">Tuyệt vời!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Section -->
+                <div id="chat-section" class="section-content hidden h-full flex">
+                    <!-- Chat Sidebar -->
+                    <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+                        <!-- Chat Header -->
+                        <div class="p-4 border-b border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-semibold text-gray-900">Chats</h2>
+                                <button class="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                                    title="New Chat">
+                                    <i class="fas fa-plus text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Chat List -->
+                        <div class="flex-1 overflow-y-auto">
+                            <div class="p-2">
+                                <div
+                                    class="chat-item p-3 rounded-lg bg-gray-100 border-l-4 border-purple-600 cursor-pointer">
+                                    <div class="font-medium text-gray-900 text-sm">New chat</div>
+                                    <div class="text-xs text-gray-500 mt-1">Proma Project Manager Agent</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Chat Area -->
+                    <div class="flex-1 flex flex-col">
+                        <!-- Chat Header -->
+                        <div class="chat-header bg-white border-b border-gray-200 px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-robot text-purple-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">Proma</h3>
+                                    <p class="text-sm text-gray-500">
+                                        <span id="ai-status">Project Manager Agent</span>
+                                        <span id="ai-thinking" class="hidden text-purple-600">
+                                            <i class="fas fa-circle-notch fa-spin mr-1"></i>Đang suy nghĩ...
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Messages -->
+                        <div class="chat-messages flex-1 overflow-y-auto p-6 bg-gray-50" id="chat-messages">
+                            <!-- Messages will be added here -->
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="chat-input bg-white border-t border-gray-200 p-4">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <button class="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                                    title="Attach File">
+                                    <i class="fas fa-paperclip"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                                    title="Select Task">
+                                    <i class="fas fa-tasks"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                                    title="Use Knowledge">
+                                    <i class="fas fa-brain"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                                    title="Execution History">
+                                    <i class="fas fa-history"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                                    title="Prompt Suggestion">
+                                    <i class="fas fa-lightbulb"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-1 relative">
+                                    <input type="text" id="chat-input" placeholder="Talk to your Employee"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent pr-12">
+                                </div>
+                                <button id="send-button"
+                                    class="w-10 h-10 bg-purple-600 text-white rounded-full hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 flex items-center justify-center">
+                                    <i class="fas fa-paper-plane text-sm"></i>
+                                </button>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2 text-center">
+                                Proma AI có thể mắc lỗi. Hãy kiểm tra các thông tin quan trọng.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Other Sections (placeholder) -->
+                <div id="agents-section" class="section-content hidden h-full overflow-y-auto bg-gray-50 p-6">
+                    <h1 class="text-3xl font-bold text-gray-900">Agents</h1>
+                    <p class="mt-2 text-gray-600">Quản lý các AI agents</p>
+                </div>
+
+                <div id="files-section" class="section-content hidden h-full overflow-y-auto bg-gray-50 p-6">
+                    <h1 class="text-3xl font-bold text-gray-900">File Management</h1>
+                    <p class="mt-2 text-gray-600">Quản lý files và tài liệu</p>
+                </div>
+
+                <div id="tasks-section" class="section-content hidden h-full overflow-y-auto bg-gray-50 p-6">
+                    <h1 class="text-3xl font-bold text-gray-900">Tasks</h1>
+                    <p class="mt-2 text-gray-600">Quản lý công việc và nhiệm vụ</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="auth-modal">
+        <div class="bg-white rounded-lg p-6 w-96">
+            <!-- Login Form -->
+            <div id="login-form-container">
+                <h2 class="text-xl font-bold mb-4">Đăng nhập Proma</h2>
+                <form id="login-form">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Tên đăng nhập:</label>
+                        <input type="text" id="login-username" name="username" class="w-full p-2 border rounded-lg"
+                            required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Mật khẩu:</label>
+                        <input type="password" id="login-password" name="password" class="w-full p-2 border rounded-lg"
+                            required>
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 mb-2">
+                        Đăng nhập
+                    </button>
+                    <button type="button" onclick="showRegisterForm()"
+                        class="w-full bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600">
+                        Chưa có tài khoản? Đăng ký
+                    </button>
+                </form>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-form-container" style="display: none;">
+                <h2 class="text-xl font-bold mb-4">Đăng ký Proma</h2>
+                <form id="register-form">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Tên đăng nhập:</label>
+                        <input type="text" id="register-username" name="username" class="w-full p-2 border rounded-lg"
+                            required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Mật khẩu:</label>
+                        <input type="password" id="register-password" name="password"
+                            class="w-full p-2 border rounded-lg" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Xác nhận mật khẩu:</label>
+                        <input type="password" id="register-confirm-password" name="confirm_password"
+                            class="w-full p-2 border rounded-lg" required>
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 mb-2">
+                        Đăng ký
+                    </button>
+                    <button type="button" onclick="showLoginForm()"
+                        class="w-full bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600">
+                        Đã có tài khoản? Đăng nhập
+                    </button>
+                </form>
+            </div>
+
+            <!-- Loading indicator -->
+            <div id="auth-loading" style="display: none;" class="text-center py-4">
+                <i class="fas fa-spinner fa-spin text-purple-600 text-2xl"></i>
+                <p class="mt-2 text-gray-600">Đang xử lý...</p>
+            </div>
+
+            <!-- Error message -->
+            <div id="auth-error" style="display: none;"
+                class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard-script-new.js"></script>
+</body>
+
+</html>

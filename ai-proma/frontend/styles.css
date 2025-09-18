@@ -255,6 +255,7 @@ body {
 .typing-indicator.hide {
     opacity: 0;
     transform: translateY(-10px);
+    transition: all 0.3s ease-out;
 }
 
 .typing-dots {

@@ -44,7 +44,7 @@ class DatabaseSettings(BaseSettings):
     )
     
     postgres_dbname: str = Field(
-        default="faramex",
+        default="proma",
         env="POSTGRES_DBNAME",
         description="PostgreSQL database name"
     )
@@ -141,13 +141,13 @@ class ServerSettings(BaseSettings):
     
     # Application info
     app_name: str = Field(
-        default="FARAMEX",
+        default="Proma",
         env="APP_NAME",
         description="Application name"
     )
     
     app_description: str = Field(
-        default="FARAMEX MULTI AGENT SYSTEM",
+        default="Proma Multi Agent System",
         env="APP_DESCRIPTION",
         description="Application description"
     )
