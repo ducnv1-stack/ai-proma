@@ -1,148 +1,1017 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en" class="scroll-smooth">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proma AI Chat</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Proma - Smart Project Management with AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #ffffff;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .main-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .secondary-gradient {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ebf1 100%);
+        }
+
+        .cta-button {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            filter: brightness(1.1);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .floating-card {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-card:nth-child(2) {
+            animation-delay: -2s;
+        }
+
+        .floating-card:nth-child(3) {
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px) rotate(var(--rotation, 0deg));
+            }
+
+            50% {
+                transform: translateY(-10px) rotate(var(--rotation, 0deg));
+            }
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .dashboard-container {
+            perspective: 1000px;
+        }
+
+        .dashboard-image {
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-image:hover {
+            transform: rotateY(5deg) rotateX(5deg);
+        }
+
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+
+        .fade-in-section.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .stats-badge {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .hero-bg {
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(120, 200, 255, 0.1) 0%, transparent 50%);
+        }
+    </style>
 </head>
 
-<body>
-    <div class="chat-container">
-        <!-- Header -->
-        <div class="chat-header">
-            <div class="header-left">
-                <div class="agent-avatar">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="agent-info">
-                    <h3 id="agent-name">Proma Project Manager Agent</h3>
-                    <span id="agent-status" class="status-online">Online</span>
-                </div>
+<body class="bg-white text-gray-800">
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-50 shadow-sm">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center max-w-7xl">
+            <a href="#" class="flex items-center space-x-2">
+                <svg class="h-8 w-8 text-[#764ba2]" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                    <path d="m9 12 2 2 4-4" />
+                </svg>
+                <span class="text-2xl font-bold text-gray-800">Proma AI</span>
+            </a>
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#features" class="text-gray-600 hover:text-[#667eea] transition">Features</a>
+                <a href="#how-it-works" class="text-gray-600 hover:text-[#667eea] transition">How It Works</a>
+                <a href="#pricing" class="text-gray-600 hover:text-[#667eea] transition">Pricing</a>
+                <a href="#reviews" class="text-gray-600 hover:text-[#667eea] transition">Reviews</a>
+                <a href="#contact" class="text-gray-600 hover:text-[#667eea] transition">Contact</a>
+            </nav>
+            <div class="hidden md:flex items-center space-x-4">
+                <a href="dashboard.html" class="text-gray-600 hover:text-[#667eea] font-medium transition">Sign In</a>
+                <a href="dashboard.html" class="cta-button main-gradient text-white font-bold py-2 px-6 rounded-full">
+                    Try Free
+                </a>
             </div>
-            <div class="header-right">
-                <button id="back-btn" class="icon-btn" onclick="goBack()">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <button id="settings-btn" class="icon-btn">
-                    <i class="fas fa-cog"></i>
-                </button>
-                <button id="logout-btn" class="icon-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
+            <button id="mobile-menu-button" class="md:hidden">
+                <svg class="w-6 h-6 text-gray-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
         </div>
-
-        <!-- Chat Messages -->
-        <div class="chat-messages" id="chat-messages">
-            <div class="welcome-message">
-                <div class="agent-avatar">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="message-content">
-                    <p>Xin chào! Tôi là Proma Project Manager Agent. Tôi có thể giúp bạn quản lý dự án, tạo task, phân công công việc và theo dõi tiến độ. Hãy bắt đầu cuộc trò chuyện!</p>
-                </div>
-            </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden px-6 pb-4">
+            <a href="#features" class="block py-2 text-gray-600 hover:text-[#667eea]">Features</a>
+            <a href="#how-it-works" class="block py-2 text-gray-600 hover:text-[#667eea]">How It Works</a>
+            <a href="#pricing" class="block py-2 text-gray-600 hover:text-[#667eea]">Pricing</a>
+            <a href="#reviews" class="block py-2 text-gray-600 hover:text-[#667eea]">Reviews</a>
+            <a href="#contact" class="block py-2 text-gray-600 hover:text-[#667eea]">Contact</a>
+            <a href="dashboard.html" class="block py-2 text-gray-600 hover:text-[#667eea] font-medium">Sign In</a>
+            <a href="dashboard.html"
+                class="mt-4 block text-center cta-button main-gradient text-white font-bold py-2 px-6 rounded-full">
+                Try Free
+            </a>
         </div>
+    </header>
 
-        <!-- Typing Indicator -->
-        <div class="typing-indicator" id="typing-indicator" style="display: none;">
-            <div class="agent-avatar">
-                <i class="fas fa-robot"></i>
-            </div>
-            <div class="typing-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
+    <main>
 
-        <!-- Input Area -->
-        <div class="chat-input-area">
-            <div class="input-container">
-                <button id="attach-btn" class="icon-btn">
-                    <i class="fas fa-paperclip"></i>
-                </button>
-                <input type="file" id="file-input" accept="image/*" multiple style="display: none;">
-                <div class="input-wrapper">
-                    <textarea id="message-input" placeholder="Nhập tin nhắn của bạn..." rows="1"
-                        maxlength="4000"></textarea>
-                    <div class="input-actions">
-                        <span id="char-count">0/4000</span>
-                        <button id="send-btn" class="send-btn" disabled>
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
+        <!-- Hero Section with Horizontal Layout -->
+        <section class="pt-32 pb-20 bg-gradient-to-br from-indigo-50 via-white to-purple-50 fade-in-section">
+            <div class="container mx-auto px-6 max-w-7xl">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <!-- Text Content (Left Side) -->
+                    <div class="text-left">
+                        <div class="inline-flex items-center bg-indigo-100 text-indigo-600 px-4 py-2 rounded-full text-sm font-medium mb-6">
+                            <i class="fas fa-star mr-2"></i>
+                            Advanced AI Technology 2025
+                        </div>
+                        <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-6">
+                            Smart Project Management<br>
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                                Powered by AI
+                            </span>
+                        </h1>
+                        <p class="text-base text-gray-600 mb-8 leading-relaxed max-w-md text-center">
+                            Automate workflows, predict risks, and optimize project performance with the power of artificial intelligence
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                            <a href="dashboard.html" class="cta-button bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg">
+                                <i class="fas fa-rocket mr-2"></i>
+                                Start Free Trial
+                            </a>
+                            <a href="#features" class="cta-button bg-white border-2 border-indigo-200 text-indigo-600 font-bold py-4 px-8 rounded-xl hover:bg-indigo-50">
+                                <i class="fas fa-play mr-2"></i>
+                                Watch Demo
+                            </a>
+                        </div>
+                        <!-- Stats Row -->
+                        <div class="flex flex-wrap gap-6 text-sm text-gray-600">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-clock text-indigo-500"></i>
+                                <span class="font-medium">5 minute setup</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-chart-line text-purple-500"></i>
+                                <span class="font-medium">40% efficiency boost</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-headset text-teal-500"></i>
+                                <span class="font-medium">24/7 support</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Showcase (Right Side) -->
+                    <div class="relative">
+                        <!-- Main Dashboard Image -->
+                        <div class="relative bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dashboard-container">
+                            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 h-12 flex items-center px-6">
+                                <div class="flex space-x-2">
+                                    <div class="w-3 h-3 bg-red-400 rounded-full"></div>
+                                    <div class="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                                    <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                                </div>
+                                <div class="flex-1 text-center">
+                                    <span class="text-white text-sm font-medium">Smart Dashboard</span>
+                                </div>
+                            </div>
+                            <div class="dashboard-image">
+                                <img src="image-index/banner-index-proma.avif" alt="Proma AI Dashboard" class="w-full h-auto rounded-lg">
+                            </div>
+                        </div>
+
+                        <!-- Floating Stats Cards -->
+                        <!-- Projects Completed Card -->
+                        <div class="absolute -top-4 -left-4 bg-white rounded-2xl shadow-xl p-4 border border-gray-100 floating-card" style="--rotation: -2deg;">
+                            <div class="flex items-center gap-3">
+                                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                                <span class="text-sm font-medium text-gray-600">Projects Completed</span>
+                            </div>
+                            <div class="text-3xl font-black text-gray-900 mt-1">94%</div>
+                        </div>
+
+                        <!-- AI Insights Card -->
+                        <div class="absolute top-8 -right-4 bg-white rounded-2xl shadow-xl p-4 border border-gray-100 floating-card" style="--rotation: 2deg;">
+                            <div class="flex items-center gap-3">
+                                <div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span class="text-sm font-medium text-gray-600">AI Insights</span>
+                            </div>
+                            <div class="text-2xl font-black text-blue-600 mt-1">Real-time</div>
+                        </div>
+
+                        <!-- Time Saved Card -->
+                        <div class="absolute bottom-8 -right-4 bg-white rounded-2xl shadow-xl p-4 border border-gray-100 floating-card" style="--rotation: 1deg;">
+                            <div class="flex items-center gap-3">
+                                <div class="w-3 h-3 bg-teal-500 rounded-full"></div>
+                                <span class="text-sm font-medium text-gray-600">Time Saved</span>
+                            </div>
+                            <div class="text-3xl font-black text-teal-600 mt-1">8.5h</div>
+                            <div class="text-xs text-gray-500">per week</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="attached-images" id="attached-images"></div>
-        </div>
-    </div>
+        </section>
 
-    <!-- Login Modal -->
-    <div class="modal" id="login-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Đăng nhập Proma</h2>
+        <!-- Features Section -->
+        <section id="features" class="py-20 bg-[#f5f7fa] fade-in-section">
+            <div class="container mx-auto px-6 max-w-7xl">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold text-gray-800">Powerful <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#667eea] to-[#764ba2]">Features</span></h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">Discover powerful features that help you manage projects more effectively than ever before</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Feature Card 1 -->
+                    <div class="bg-white p-8 rounded-2xl shadow-md transition-all duration-300 feature-card">
+                        <div
+                            class="bg-purple-100 text-purple-600 rounded-xl w-14 h-14 flex items-center justify-center mb-6">
+                            <i class="fas fa-brain text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Smart AI</h3>
+                        <p class="text-gray-600">Artificial intelligence learns from project data to provide optimal suggestions and accurate risk predictions.</p>
+                    </div>
+                    <!-- Feature Card 2 -->
+                    <div class="bg-white p-8 rounded-2xl shadow-md transition-all duration-300 feature-card">
+                        <div
+                            class="bg-blue-100 text-blue-600 rounded-xl w-14 h-14 flex items-center justify-center mb-6">
+                            <i class="fas fa-chart-bar text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-[#667eea] to-[#764ba2]">Data Analytics</h3>
+                        <p class="text-gray-600">Visual dashboard with real-time charts, detailed reports and actionable insights for better decisions.</p>
+                    </div>
+                    <!-- Feature Card 3 -->
+                    <div class="bg-white p-8 rounded-2xl shadow-md transition-all duration-300 feature-card">
+                        <div
+                            class="bg-orange-100 text-orange-600 rounded-xl w-14 h-14 flex items-center justify-center mb-6">
+                            <i class="fas fa-cogs text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Automation</h3>
+                        <p class="text-gray-600">Automatically assign tasks, send notifications and update progress based on intelligent rules.</p>
+                    </div>
+                    <!-- Feature Card 4 -->
+                    <div class="bg-white p-8 rounded-2xl shadow-md transition-all duration-300 feature-card">
+                        <div
+                            class="bg-green-100 text-green-600 rounded-xl w-14 h-14 flex items-center justify-center mb-6">
+                            <i class="fas fa-users text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-[#667eea] to-[#764ba2]">Team Collaboration</h3>
+                        <p class="text-gray-600">Shared workspace with integrated chat, file sharing and flexible access management.</p>
+                    </div>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="username">Tên đăng nhập:</label>
-                        <input type="text" id="username" required>
+        </section>
+
+        <!-- Ready to experience AI power? -->
+        <section class="py-20 bg-gradient-to-br from-indigo-50 to-purple-50 fade-in-section">
+            <div class="container mx-auto px-6 text-center max-w-4xl">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">Ready to experience AI power?</h2>
+                <p class="text-lg text-gray-600 mb-8">Join thousands of businesses that trust AI Project Manager for their success</p>
+                <a href="dashboard.html" class="cta-button main-gradient text-white font-bold py-4 px-8 rounded-xl shadow-lg inline-block hover:opacity-90">
+                    Start 14-day free trial
+                </a>
+            </div>
+        </section>
+
+        <!-- Impressive Numbers -->
+        <section class="py-20 main-gradient text-white fade-in-section">
+            <div class="container mx-auto px-6 max-w-6xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold mb-4">Impressive Numbers</h2>
+                    <p class="text-lg text-gray-200">Real results from customers who have used AI Project Manager</p>
+                </div>
+                
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+                    <!-- Stat 1 -->
+                    <div class="text-center bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+                        <div class="text-white/80 mb-4">
+                            <i class="fas fa-users text-3xl"></i>
+                        </div>
+                        <div class="text-4xl font-black text-white mb-2">50,000+</div>
+                        <div class="text-white/80 font-medium">Trusted Users</div>
+                        <div class="text-white/60 text-sm">Worldwide</div>
                     </div>
-                    <div class="form-group">
-                        <label for="password">Mật khẩu:</label>
-                        <input type="password" id="password" required>
+                    
+                    <!-- Stat 2 -->
+                    <div class="text-center bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+                        <div class="text-white/80 mb-4">
+                            <i class="fas fa-chart-line text-3xl"></i>
+                        </div>
+                        <div class="text-4xl font-black text-white mb-2">40%</div>
+                        <div class="text-white/80 font-medium">Efficiency Boost</div>
+                        <div class="text-white/60 text-sm">Average per project</div>
                     </div>
-                    <div class="form-group">
-                        <label for="workspace-id">Workspace ID:</label>
-                        <input type="text" id="workspace-id" required>
+                    
+                    <!-- Stat 3 -->
+                    <div class="text-center bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+                        <div class="text-white/80 mb-4">
+                            <i class="fas fa-clock text-3xl"></i>
+                        </div>
+                        <div class="text-4xl font-black text-white mb-2">8.5h</div>
+                        <div class="text-white/80 font-medium">Time Saved</div>
+                        <div class="text-white/60 text-sm">Per week per PM</div>
                     </div>
-                    <div class="form-group">
-                        <label for="agent-select">Agent:</label>
-                        <select id="agent-select" required>
-                            <option value="project_manager_agent">Proma Project Manager Agent</option>
-                        </select>
+                    
+                    <!-- Stat 4 -->
+                    <div class="text-center bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+                        <div class="text-white/80 mb-4">
+                            <i class="fas fa-shield-check text-3xl"></i>
+                        </div>
+                        <div class="text-4xl font-black text-white mb-2">99.9%</div>
+                        <div class="text-white/80 font-medium">Reliability</div>
+                        <div class="text-white/60 text-sm">Uptime guaranteed</div>
                     </div>
-                    <button type="submit" class="login-btn">Đăng nhập</button>
-                </form>
+                </div>
+                
+                <!-- Trusted by leading enterprises -->
+                <div class="text-center">
+                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 inline-block">
+                        <h3 class="text-xl font-bold text-white mb-6">Trusted by leading enterprises</h3>
+                        <div class="flex flex-wrap justify-center items-center gap-8 text-white/60">
+                            <span class="text-lg font-medium">Microsoft</span>
+                            <span class="text-lg font-medium">Google</span>
+                            <span class="text-lg font-medium">Amazon</span>
+                            <span class="text-lg font-medium">Meta</span>
+                            <span class="text-lg font-medium">Apple</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- What Our Customers Say -->
+        <section class="py-20 bg-white fade-in-section">
+            <div class="container mx-auto px-6 max-w-7xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold text-gray-800">What Our <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#667eea] to-[#764ba2]">Customers Say</span></h2>
+                    <p class="text-lg text-gray-600 mt-4">Thousands of businesses have trusted and achieved excellent results with AI Project Manager</p>
+                </div>
+                
+                <!-- Testimonials Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                    <!-- Testimonial 1 -->
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-4">
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-4 italic">"Proma Project Manager has completely transformed how we manage projects. The real-time dashboard and workflow efficiency is truly remarkable. Highly recommend for any team."</p>
+                        <div class="flex items-center">
+                            <img src="https://placehold.co/40x40/667eea/ffffff?text=SJ" alt="Sarah Johnson" class="w-10 h-10 rounded-full mr-3">
+                            <div>
+                                <div class="font-semibold text-gray-900">Sarah Johnson</div>
+                                <div class="text-sm text-gray-500">Project Manager at TechFlow Solutions</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Testimonial 2 -->
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-4">
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-4 italic">"Since using AI Project Manager, our team productivity has increased by 40% on all projects. The visual dashboard and insights are truly game-changing."</p>
+                        <div class="flex items-center">
+                            <img src="https://placehold.co/40x40/764ba2/ffffff?text=MC" alt="Michael Chen" class="w-10 h-10 rounded-full mr-3">
+                            <div>
+                                <div class="font-semibold text-gray-900">Michael Chen</div>
+                                <div class="text-sm text-gray-500">CTO at Digital Innovations Hub</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Testimonial 3 -->
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-4">
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-4 italic">"The team collaboration and AI planning features are amazing. Our remote team now works as efficiently as when sitting together in the same office."</p>
+                        <div class="flex items-center">
+                            <img src="https://placehold.co/40x40/4fd1c5/ffffff?text=ER" alt="Emily Rodriguez" class="w-10 h-10 rounded-full mr-3">
+                            <div>
+                                <div class="font-semibold text-gray-900">Emily Rodriguez</div>
+                                <div class="text-sm text-gray-500">Operations Lead at StartupFlow</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Testimonial 4 -->
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-4">
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-4 italic">"User-friendly interface, easy integration with existing tools. AI suggestions help me identify bottlenecks early and optimize workflow effectively."</p>
+                        <div class="flex items-center">
+                            <img src="https://placehold.co/40x40/f59e0b/ffffff?text=DT" alt="David Thompson" class="w-10 h-10 rounded-full mr-3">
+                            <div>
+                                <div class="font-semibold text-gray-900">David Thompson</div>
+                                <div class="text-sm text-gray-500">Principal Lead at CloudTech Pro</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Testimonial 5 -->
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-4">
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-4 italic">"Automated reporting and real-time monitoring give me a comprehensive view of all projects. 24/7 customer support is very professional and responsive."</p>
+                        <div class="flex items-center">
+                            <img src="https://placehold.co/40x40/10b981/ffffff?text=LW" alt="Lisa Wang" class="w-10 h-10 rounded-full mr-3">
+                            <div>
+                                <div class="font-semibold text-gray-900">Lisa Wang</div>
+                                <div class="text-sm text-gray-500">Senior Manager at E-Commerce Plus</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Testimonial 6 -->
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex items-center mb-4">
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-4 italic">"Perfect for Agile methodology. Sprint planning with AI suggestions and auto-scheduling team charts help the team focus on development instead of admin tasks."</p>
+                        <div class="flex items-center">
+                            <img src="https://placehold.co/40x40/8b5cf6/ffffff?text=JW" alt="James Wilson" class="w-10 h-10 rounded-full mr-3">
+                            <div>
+                                <div class="font-semibold text-gray-900">James Wilson</div>
+                                <div class="text-sm text-gray-500">Agile Coach at DevFlow Solutions</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Average Rating & CTA -->
+                <div class="text-center max-w-md mx-auto">
+                    <div class="flex items-center justify-center gap-2 bg-purple-50 border border-purple-200 rounded-full px-6 py-3 mb-6 w-full">
+                        <i class="fas fa-star text-yellow-400 text-sm"></i>
+                        <span class="text-sm font-medium text-purple-700">Average rating 4.9/5 from 2,500+ customers</span>
+                    </div>
+                    
+                    <div>
+                        <a href="dashboard.html" class="cta-button main-gradient text-white font-bold py-4 px-8 rounded-xl shadow-lg block w-full hover:opacity-90">
+                            Join our satisfied customer community
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ready to revolutionize your project management? -->
+        <section class="py-20 main-gradient text-white fade-in-section">
+            <div class="container mx-auto px-6 text-center max-w-4xl">
+                <div class="mb-8">
+                    <div class="inline-flex items-center bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium mb-6">
+                        <i class="fas fa-rocket mr-2"></i>
+                        Special Offer - This Month Only
+                    </div>
+                    <h2 class="text-4xl md:text-5xl font-bold mb-4">
+                        Ready to revolutionize<br>
+                        <span class="text-yellow-300">your project management?</span>
+                    </h2>
+                    <p class="text-lg text-gray-200 mb-8">
+                        Join thousands of smart businesses that have chosen AI Project Manager to boost efficiency and achieve outstanding success
+                    </p>
+                </div>
+                
+                <!-- Features List -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-left max-w-2xl mx-auto">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>14-day free trial</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>No credit card required</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>24/7 support</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>Integration with 100+ tools</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>Free team training</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                        <span>Enterprise-grade security</span>
+                    </div>
+                </div>
+                
+                <!-- CTA Buttons -->
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
+                    <a href="dashboard.html" class="w-full sm:w-auto cta-button bg-white text-[#764ba2] font-bold py-4 px-8 rounded-xl shadow-lg hover:bg-gray-100">
+                        Start Free Trial Now
+                    </a>
+                    <a href="#contact" class="w-full sm:w-auto cta-button bg-transparent border-2 border-white text-white font-bold py-4 px-8 rounded-xl hover:bg-white hover:text-[#764ba2]">
+                        Schedule Personal Demo
+                    </a>
+                </div>
+                
+                <!-- Trust Indicators -->
+                <div class="text-center">
+                    <p class="text-sm text-gray-300 mb-4">Trusted by 50,000+ users worldwide</p>
+                    <div class="flex justify-center items-center gap-2">
+                        <div class="flex text-yellow-400">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <span class="text-sm text-gray-300">4.95/5 from 2,500+ reviews</span>
+                    </div>
+                </div>
+                
+                <!-- Special Offer Box -->
+                <div class="mt-12 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+                    <div class="flex items-center justify-center gap-2 mb-4">
+                        <i class="fas fa-gift text-yellow-400 text-xl"></i>
+                        <span class="text-xl font-bold text-yellow-300">Special Offer This Month</span>
+                    </div>
+                    <p class="text-white mb-4">Sign up today to get our Premium Plan free for 3 days with our experts</p>
+                    <div class="flex items-center justify-center gap-2">
+                        <i class="fas fa-clock text-yellow-400"></i>
+                        <span class="font-bold text-yellow-300">Only 15 days left - Don't miss out!</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section id="how-it-works" class="py-20 bg-white fade-in-section">
+            <div class="container mx-auto px-6 max-w-5xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold text-gray-800">How It Works in 3 Steps</h2>
+                </div>
+                <div class="flex flex-col md:flex-row justify-between items-center gap-12">
+                    <!-- Step 1 -->
+                    <div class="text-center max-w-xs">
+                        <div class="text-6xl font-extrabold text-[#667eea] mb-4">01</div>
+                        <h3 class="text-2xl font-bold mb-2">Connect Your Project</h3>
+                        <p class="text-gray-600">Easily import data or integrate with the tools you're already using.
+                        </p>
+                    </div>
+                    <!-- Step 2 -->
+                    <div class="text-center max-w-xs">
+                        <div class="text-6xl font-extrabold text-[#764ba2] mb-4">02</div>
+                        <h3 class="text-2xl font-bold mb-2">AI Analyzes & Optimizes</h3>
+                        <p class="text-gray-600">Our AI will analyze and provide suggestions to optimize your project.
+                        </p>
+                    </div>
+                    <!-- Step 3 -->
+                    <div class="text-center max-w-xs">
+                        <div class="text-6xl font-extrabold text-[#4fd1c5] mb-4">03</div>
+                        <h3 class="text-2xl font-bold mb-2">Track & Report</h3>
+                        <p class="text-gray-600">Monitor progress visually and receive intelligent automated reports.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials -->
+        <section id="reviews" class="py-20 bg-[#f5f7fa] fade-in-section">
+            <div class="container mx-auto px-6 max-w-4xl text-center">
+                <h2 class="text-4xl font-bold text-gray-800 mb-12">Trusted by Teams Worldwide</h2>
+                <div class="bg-white p-10 rounded-2xl shadow-lg relative">
+                    <img src="https://placehold.co/100x100/764ba2/ffffff?text=User" alt="Customer Avatar"
+                        class="w-24 h-24 rounded-full mx-auto -mt-24 mb-6 border-4 border-white shadow-md">
+                    <p class="text-xl md:text-2xl font-medium text-gray-700 italic">
+                        "Proma has completely transformed the way we work. It helps us save 30% of management time and
+                        reduce risks remarkably."
+                    </p>
+                    <cite class="block mt-6 not-italic">
+                        <span class="font-bold text-gray-900">Jane Doe</span><br>
+                        <span class="text-gray-500">Project Manager, TechCorp</span>
+                    </cite>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Plans -->
+        <section id="pricing" class="py-20 bg-white fade-in-section">
+            <div class="container mx-auto px-6 max-w-7xl">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold text-gray-800">Flexible Pricing for Every Team</h2>
+                    <p class="mt-4 text-lg text-gray-600">Start free, upgrade as you grow.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                    <!-- Plan 1: Starter -->
+                    <div class="bg-gray-50 p-8 rounded-2xl border-2 border-gray-200 h-full">
+                        <h3 class="text-2xl font-bold">Starter</h3>
+                        <p class="text-gray-500 mt-2">Basic, for individuals & small teams.</p>
+                        <p class="text-5xl font-extrabold my-6">Free</p>
+                        <ul class="space-y-3 text-gray-600 mb-8">
+                            <li class="flex items-center"><svg class="w-5 h-5 text-green-500 mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>3 Projects</li>
+                            <li class="flex items-center"><svg class="w-5 h-5 text-green-500 mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>10 Team Members</li>
+                            <li class="flex items-center"><svg class="w-5 h-5 text-green-500 mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>Basic Analytics</li>
+                        </ul>
+                        <a href="dashboard.html"
+                            class="w-full block text-center cta-button bg-white border-2 border-gray-300 text-gray-800 font-bold py-3 px-6 rounded-full hover:bg-gray-100">Get
+                            Started</a>
+                    </div>
+
+                    <!-- Plan 2: Pro (Highlighted) -->
+                    <div
+                        class="main-gradient text-white p-8 rounded-3xl shadow-2xl relative h-full transform lg:scale-110">
+                        <span
+                            class="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#4fd1c5] text-white text-xs font-bold px-4 py-1 rounded-full uppercase">Most
+                            Popular</span>
+                        <h3 class="text-2xl font-bold">Pro</h3>
+                        <p class="text-gray-200 mt-2">For growing teams, advanced features.</p>
+                        <p class="text-5xl font-extrabold my-6">$49<span class="text-xl font-medium">/month</span></p>
+                        <ul class="space-y-3 text-gray-100 mb-8">
+                            <li class="flex items-center"><svg class="w-5 h-5 text-white mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>Unlimited Projects</li>
+                            <li class="flex items-center"><svg class="w-5 h-5 text-white mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>Unlimited Members</li>
+                            <li class="flex items-center"><svg class="w-5 h-5 text-white mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>AI Analytics & Automation</li>
+                            <li class="flex items-center"><svg class="w-5 h-5 text-white mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>Priority Support</li>
+                        </ul>
+                        <a href="dashboard.html"
+                            class="w-full block text-center cta-button bg-white text-[#764ba2] font-bold py-3 px-6 rounded-full">Choose
+                            Pro</a>
+                    </div>
+
+                    <!-- Plan 3: Enterprise -->
+                    <div class="bg-gray-50 p-8 rounded-2xl border-2 border-gray-200 h-full">
+                        <h3 class="text-2xl font-bold">Enterprise</h3>
+                        <p class="text-gray-500 mt-2">For large companies, custom AI and security.</p>
+                        <p class="text-5xl font-extrabold my-6">Custom</p>
+                        <ul class="space-y-3 text-gray-600 mb-8">
+                            <li class="flex items-center"><svg class="w-5 h-5 text-green-500 mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>Everything in Pro</li>
+                            <li class="flex items-center"><svg class="w-5 h-5 text-green-500 mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>Custom AI Models</li>
+                            <li class="flex items-center"><svg class="w-5 h-5 text-green-500 mr-2" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7"></path>
+                                </svg>Dedicated Account Manager</li>
+                        </ul>
+                        <a href="#contact"
+                            class="w-full block text-center cta-button bg-white border-2 border-gray-300 text-gray-800 font-bold py-3 px-6 rounded-full hover:bg-gray-100">Contact
+                            Sales</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section id="cta" class="main-gradient text-white py-20 fade-in-section">
+            <div class="container mx-auto px-6 text-center max-w-3xl">
+                <h2 class="text-4xl font-bold mb-4">Ready to Supercharge Your Projects with AI?</h2>
+                <a href="dashboard.html"
+                    class="cta-button bg-white text-[#764ba2] font-bold py-4 px-10 rounded-full text-lg mt-8 inline-block">
+                    Start Free Trial
+                </a>
+                <p class="mt-4 text-gray-200">No credit card required – start now.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer id="contact" class="bg-[#1e293b] text-white">
+        <div class="container mx-auto px-6 py-12 max-w-7xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- AI Project Manager -->
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="bg-indigo-600 rounded-lg p-2">
+                            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                                <path d="m9 12 2 2 4-4" />
+                            </svg>
+                        </div>
+                        <span class="text-lg font-bold">AI Project Manager</span>
+                    </div>
+                    <p class="text-gray-300 text-sm leading-relaxed mb-6">
+                        Intelligent project management solution powered by artificial intelligence, helping businesses optimize performance and achieve success.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-facebook text-lg"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-twitter text-lg"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-linkedin text-lg"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-youtube text-lg"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Product -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Product</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#features" class="text-gray-300 hover:text-white transition text-sm">Features</a></li>
+                        <li><a href="#pricing" class="text-gray-300 hover:text-white transition text-sm">Pricing</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition text-sm">Integrations</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition text-sm">API</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition text-sm">Security</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Support</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition text-sm">Help Center</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition text-sm">User Guide</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition text-sm">Video Tutorials</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition text-sm">Community</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition text-sm">Contact Support</a></li>
+                    </ul>
+                </div>
+
+                <!-- Contact -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Contact</h4>
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-envelope text-gray-400 mt-1"></i>
+                            <div>
+                                <p class="text-gray-300 text-sm">support@aiprojectmanager.com</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-phone text-gray-400 mt-1"></i>
+                            <div>
+                                <p class="text-gray-300 text-sm">+1 (555) 123-4567 (24/7)</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-map-marker-alt text-gray-400 mt-1"></i>
+                            <div>
+                                <p class="text-gray-300 text-sm">123 Innovation Drive<br>Suite 100<br>San Francisco, CA 94107</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Bar -->
+            <div class="border-t border-gray-600 mt-12 pt-6 flex flex-col md:flex-row justify-between items-center">
+                <div class="text-gray-400 text-sm mb-4 md:mb-0">
+                    <p>&copy; 2024 AI Project Manager. All rights reserved.</p>
+                </div>
+                <div class="flex space-x-6 text-sm">
+                    <a href="#" class="text-gray-400 hover:text-white transition">Privacy Policy</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">Terms of Service</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">Cookie Policy</a>
+                </div>
             </div>
         </div>
-    </div>
+    </footer>
 
-    <!-- Settings Modal -->
-    <div class="modal" id="settings-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Cài đặt</h2>
-                <button class="close-btn" id="close-settings">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="api-url">API URL:</label>
-                    <input type="text" id="api-url" value="http://localhost:8003">
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="auto-scroll"> Tự động cuộn xuống
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="sound-notifications"> Âm thanh thông báo
-                    </label>
-                </div>
-                <button id="save-settings" class="login-btn">Lưu cài đặt</button>
-            </div>
-        </div>
-    </div>
+    <!-- Hidden modals - not needed for landing page but kept for compatibility -->
 
-    <script src="script.js"></script>
+    <script>
+        // Dashboard Animation
+        function animateCounters() {
+            const counters = document.querySelectorAll('[data-target]');
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                const duration = 2000;
+                const step = target / (duration / 16);
+                let current = 0;
+                
+                const timer = setInterval(() => {
+                    current += step;
+                    if (current >= target) {
+                        counter.textContent = target;
+                        clearInterval(timer);
+                    } else {
+                        counter.textContent = Math.floor(current);
+                    }
+                }, 16);
+            });
+        }
+        
+        function animateDoughnut() {
+            const completedCircle = document.querySelector('.completed-progress');
+            const percentageText = document.querySelector('.completion-percentage');
+            
+            if (completedCircle && percentageText) {
+                // Animate single circle for 35%
+                setTimeout(() => {
+                    completedCircle.style.strokeDashoffset = '142.9';
+                }, 500);
+                
+                // Animate percentage
+                let percentage = 0;
+                const timer = setInterval(() => {
+                    percentage += 1;
+                    percentageText.textContent = percentage + '%';
+                    if (percentage >= 35) {
+                        clearInterval(timer);
+                    }
+                }, 50);
+            }
+        }
+        
+        function animateProgressBars() {
+            const efficiencyBar = document.querySelector('.efficiency-bar');
+            const qualityBar = document.querySelector('.quality-bar');
+            const timelineBar = document.querySelector('.timeline-bar');
+            
+            setTimeout(() => {
+                if (efficiencyBar) efficiencyBar.style.width = '92%';
+            }, 2000);
+            
+            setTimeout(() => {
+                if (qualityBar) qualityBar.style.width = '88%';
+            }, 2500);
+            
+            setTimeout(() => {
+                if (timelineBar) timelineBar.style.width = '95%';
+            }, 3000);
+        }
+        
+        // Start animations when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                animateCounters();
+                animateDoughnut();
+                animateProgressBars();
+            }, 1000);
+        });
+        
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        // Intersection Observer for fade-in animations
+        const sections = document.querySelectorAll('.fade-in-section');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target); // Optional: stop observing once visible
+                }
+            });
+        }, {
+            threshold: 0.1 // Trigger when 10% of the element is visible
+        });
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

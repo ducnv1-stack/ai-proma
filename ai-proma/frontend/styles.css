@@ -322,6 +322,67 @@ body {
     }
 }
 
+@keyframes floating {
+    0%, 100% {
+        transform: translateY(0px) rotate(var(--rotation));
+    }
+    50% {
+        transform: translateY(-10px) rotate(var(--rotation));
+    }
+}
+
+.floating-card {
+    animation: floating 6s ease-in-out infinite;
+}
+
+.floating-card:nth-child(2) {
+    animation-delay: -2s;
+}
+
+.floating-card:nth-child(3) {
+    animation-delay: -4s;
+}
+
+/* Dashboard Animations */
+.progress-circle {
+    transition: stroke-dashoffset 2s ease-in-out;
+}
+
+.completed-progress {
+    transition-delay: 0.5s;
+}
+
+.progress-progress {
+    transition-delay: 1s;
+}
+
+.pending-progress {
+    transition-delay: 1.5s;
+}
+
+/* Progress bars animation */
+.efficiency-bar, .quality-bar, .timeline-bar {
+    transition: width 2s ease-in-out;
+}
+
+/* Counter animation */
+[data-target] {
+    transition: all 0.3s ease;
+}
+
+/* KPI Cards hover effects */
+.bg-gradient-to-br:hover {
+    transform: translateY(-2px) scale(1.02);
+    transition: all 0.3s ease;
+}
+
+/* Dashboard cards hover */
+.bg-gray-800:hover {
+    background-color: #1f2937;
+    transform: translateY(-1px);
+    transition: all 0.3s ease;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;

@@ -58,7 +58,7 @@ class PromaDashboard {
         this.userDropdown = document.getElementById('user-dropdown');
         this.userMenuIcon = document.getElementById('user-menu-icon');
         this.logoutButton = document.getElementById('logout-button');
-        
+
         // Header user menu elements
         this.headerUserMenu = document.getElementById('header-user-menu');
         this.headerDropdown = document.getElementById('header-dropdown');
@@ -231,28 +231,28 @@ class PromaDashboard {
 
         // Show user message
         this.addMessage('user', message);
-        
+
         // Clear input
         this.messageInput.value = '';
         this.handleInputChange();
 
         // Show AI thinking status
         this.showAIThinking();
-        
+
         // Show typing indicator
         this.showTypingIndicator();
 
         try {
             // Call AI API
             const response = await this.callAI(message);
-            
+
             // Hide thinking status and typing indicator
             this.hideAIThinking();
             this.hideTypingIndicator();
-            
+
             // Show AI response with typing effect
             await this.typeAIResponse(response);
-            
+
         } catch (error) {
             console.error('AI call failed:', error);
             this.hideAIThinking();
@@ -287,18 +287,18 @@ class PromaDashboard {
     async typeAIResponse(text) {
         // Wait a bit before hiding typing indicator
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         const messageElement = this.addMessage('agent', '');
         const contentDiv = messageElement.querySelector('.message-bubble');
-        
+
         let currentText = '';
         const words = text.split(' ');
-        
+
         for (let i = 0; i < words.length; i++) {
             currentText += (i > 0 ? ' ' : '') + words[i];
             contentDiv.innerHTML = this.formatMessage(currentText);
             this.scrollToBottom();
-            
+
             // Faster typing: 30-80ms per word
             await new Promise(resolve => setTimeout(resolve, Math.random() * 50 + 30));
         }
@@ -335,16 +335,16 @@ class PromaDashboard {
     showTypingIndicator() {
         // Remove existing typing indicator
         this.hideTypingIndicator();
-        
+
         // Create typing indicator
         const typingDiv = document.createElement('div');
         typingDiv.className = 'flex items-start space-x-3 mb-4';
         typingDiv.id = 'typing-indicator';
-        
+
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0';
         avatarDiv.innerHTML = '<i class="fas fa-robot text-purple-600 text-sm"></i>';
-        
+
         const typingBubble = document.createElement('div');
         typingBubble.className = 'typing-indicator';
         typingBubble.innerHTML = `
@@ -354,10 +354,10 @@ class PromaDashboard {
                 <div class="typing-dot"></div>
             </div>
         `;
-        
+
         typingDiv.appendChild(avatarDiv);
         typingDiv.appendChild(typingBubble);
-        
+
         this.chatMessages.appendChild(typingDiv);
         this.scrollToBottom();
     }
@@ -389,13 +389,13 @@ class PromaDashboard {
 
     addWelcomeMessage() {
         if (!this.chatMessages) return;
-        
+
         // Check if welcome message already exists
         if (this.chatMessages.querySelector('.welcome-message')) return;
 
         const welcomeDiv = document.createElement('div');
         welcomeDiv.className = 'welcome-message flex items-start space-x-3 mb-4';
-        
+
         welcomeDiv.innerHTML = `
             <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <i class="fas fa-robot text-purple-600 text-sm"></i>
@@ -412,7 +412,7 @@ class PromaDashboard {
                 <p class="mt-2">Hãy bắt đầu cuộc trò chuyện bằng cách hỏi tôi về dự án của bạn! 💬</p>
             </div>
         `;
-        
+
         this.chatMessages.appendChild(welcomeDiv);
         this.scrollToBottom();
     }
@@ -480,7 +480,7 @@ class PromaDashboard {
     async handleRegister(e) {
         e.preventDefault();
         console.log('📝 Register form submitted');
-        
+
         this.hideAuthError(); // Hide any previous error messages
         this.showAuthLoading();
 
@@ -511,7 +511,7 @@ class PromaDashboard {
 
         try {
             console.log(`🚀 Calling register API: ${this.apiUrl}/api/v1/auth/register`);
-            
+
             const response = await fetch(`${this.apiUrl}/api/v1/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -528,26 +528,26 @@ class PromaDashboard {
 
             if (response.ok && data.access_token) {
                 console.log('✅ Registration successful!');
-                
+
                 // Clear register form first
                 if (this.registerForm) {
                     this.registerForm.reset();
                 }
-                
+
                 // Hide loading and show login form
                 this.hideAuthLoading();
                 this.showLoginForm();
-                
+
                 // Show success message
                 this.showAuthSuccess(`🎉 Đăng ký thành công! Vui lòng đăng nhập với tài khoản "${username}".`);
-                
+
                 // Auto-fill username in login form
                 const loginUsernameInput = document.getElementById('login-username');
                 if (loginUsernameInput) {
                     loginUsernameInput.value = username;
                     loginUsernameInput.focus();
                 }
-                
+
             } else {
                 console.log('❌ Registration failed:', data.detail);
                 this.hideAuthLoading();
@@ -575,7 +575,7 @@ class PromaDashboard {
             this.agentId = localStorage.getItem('proma_agent') || 'project_manager_agent';
             this.authModal.style.display = 'none';
             this.updateUserInfo();
-            
+
             // Add welcome message
             setTimeout(() => {
                 this.addWelcomeMessage();
@@ -595,12 +595,12 @@ class PromaDashboard {
             this.currentUserEl.classList.remove('text-gray-900');
             this.currentUserEl.classList.add('text-black');
         }
-        
+
         // Update header user info
         if (this.headerCurrentUser) {
             this.headerCurrentUser.textContent = this.currentUser || 'User';
         }
-        
+
         // Update online status to green color
         const onlineStatusEl = document.querySelector('#current-user').nextElementSibling;
         if (onlineStatusEl) {
@@ -670,7 +670,7 @@ class PromaDashboard {
     // Logout functionality
     async handleLogout() {
         console.log('🚪 Logout initiated');
-        
+
         try {
             // Call logout API endpoint
             const response = await fetch(`${this.apiUrl}/api/v1/auth/logout`, {
@@ -705,7 +705,7 @@ class PromaDashboard {
 
         } catch (error) {
             console.error('❌ Logout error:', error);
-            
+
             // Even if API call fails, clear local data
             this.clearAuthData();
             this.authModal.style.display = 'flex';

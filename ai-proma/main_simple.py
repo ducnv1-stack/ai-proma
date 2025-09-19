@@ -312,9 +312,9 @@ async def create_session():
 
 @app.get("/")
 async def root():
-    """Root endpoint redirect to dashboard"""
+    """Root endpoint - redirect to landing page"""
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/frontend/dashboard.html")
+    return RedirectResponse(url="/frontend/index.html")
 
 @app.get("/demo")
 async def demo():
