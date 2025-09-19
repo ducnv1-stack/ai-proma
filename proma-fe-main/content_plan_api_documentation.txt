@@ -1,0 +1,394 @@
+# Content Plan API Documentation
+
+## Overview
+Content Plan API cung cấp các endpoint để quản lý kế hoạch nội dung, bao gồm tạo, đọc, cập nhật, xóa và lên lịch xuất bản nội dung.
+
+## Base URL
+```
+/api/content-plans
+```
+
+## Authentication
+Tất cả endpoints yêu cầu JWT token trong header:
+```
+Authorization: Bearer <jwt_token>
+```
+
+---
+
+## User Endpoints
+
+### 1. Tạo Content Plan
+**POST** `/api/content-plans`
+
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer <jwt_token>
+```
+
+**Request Body:**
+```json
+{
+  "task_date": "2025-01-15",
+  "channel_id": "facebook_page_123",
+  "title": "AI Productivity Tips for 2025",
+  "descript_content": "Comprehensive guide on using AI tools to boost productivity",
+  "media_url": "https://example.com/image.jpg",
+  "status": "draft",
+  "meta_data": "{\"tags\": [\"AI\", \"productivity\"]}",
+  "publish_time": "2025-01-15T14:30:00Z",
+  "product": "EmployeeAI Premium",
+  "target_customer": "SME Business Owners",
+  "goals": "Increase brand awareness, Generate 50 leads",
+  "article_route": "/blog/ai-productivity-tips-2025",
+  "channel_type": "blog"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Content plan created successfully",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "task_date": "2025-01-15T00:00:00Z",
+    "last_updated_date": "2025-01-10 10:30:00",
+    "channel_id": "facebook_page_123",
+    "title": "AI Productivity Tips for 2025",
+    "descript_content": "Comprehensive guide on using AI tools to boost productivity",
+    "media_url": "https://example.com/image.jpg",
+    "status": "draft",
+    "publish_post_id": "",
+    "meta_data": "{\"tags\": [\"AI\", \"productivity\"]}",
+    "user_id": "123e4567-e89b-12d3-a456-426614174000",
+    "publish_time": "2025-01-15T14:30:00Z",
+    "product": "EmployeeAI Premium",
+    "target_customer": "SME Business Owners",
+    "goals": "Increase brand awareness, Generate 50 leads",
+    "article_route": "/blog/ai-productivity-tips-2025",
+    "channel_type": "blog"
+  }
+}
+```
+
+**Validation Rules:**
+- `task_date`: Required, valid date format
+- `title`: Required, max 255 characters
+- `status`: Required, must be one of: draft, scheduled, published, cancelled, failed
+- `channel_type`: Optional, must be one of: social_media, blog, email, video, website, newsletter, podcast, webinar
+
+---
+
+### 2. Lấy danh sách Content Plans
+**GET** `/api/content-plans`
+
+**Query Parameters:**
+- `limit` (int): Số lượng records trả về (default: 20, max: 100)
+- `offset` (int): Vị trí bắt đầu (default: 0)
+- `status` (string): Lọc theo trạng thái
+- `channel_type` (string): Lọc theo loại kênh
+- `product` (string): Lọc theo sản phẩm
+- `target_customer` (string): Lọc theo khách hàng mục tiêu
+
+**Example Request:**
+```
+GET /api/content-plans?limit=10&offset=0&status=draft&channel_type=blog
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Content plans retrieved successfully",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "task_date": "2025-01-15T00:00:00Z",
+      "title": "AI Productivity Tips for 2025",
+      "status": "draft",
+      "channel_type": "blog",
+      "product": "EmployeeAI Premium",
+      "publish_time": "2025-01-15T14:30:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 25,
+    "limit": 10,
+    "offset": 0,
+    "has_more": true
+  }
+}
+```
+
+---
+
+### 3. Lấy Content Plan theo ID
+**GET** `/api/content-plans/{id}`
+
+**Path Parameters:**
+- `id` (UUID): ID của content plan
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Content plan retrieved successfully",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "task_date": "2025-01-15T00:00:00Z",
+    "last_updated_date": "2025-01-10 10:30:00",
+    "channel_id": "facebook_page_123",
+    "title": "AI Productivity Tips for 2025",
+    "descript_content": "Comprehensive guide on using AI tools to boost productivity",
+    "media_url": "https://example.com/image.jpg",
+    "status": "draft",
+    "publish_post_id": "",
+    "meta_data": "{\"tags\": [\"AI\", \"productivity\"]}",
+    "user_id": "123e4567-e89b-12d3-a456-426614174000",
+    "publish_time": "2025-01-15T14:30:00Z",
+    "product": "EmployeeAI Premium",
+    "target_customer": "SME Business Owners",
+    "goals": "Increase brand awareness, Generate 50 leads",
+    "article_route": "/blog/ai-productivity-tips-2025",
+    "channel_type": "blog"
+  }
+}
+```
+
+---
+
+### 4. Cập nhật Content Plan
+**PUT** `/api/content-plans/{id}`
+
+**Path Parameters:**
+- `id` (UUID): ID của content plan
+
+**Request Body (tất cả fields đều optional):**
+```json
+{
+  "title": "Updated AI Productivity Tips for 2025",
+  "status": "scheduled",
+  "publish_time": "2025-01-16T09:00:00Z",
+  "goals": "Increase brand awareness, Generate 100 leads"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Content plan updated successfully",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "Updated AI Productivity Tips for 2025",
+    "status": "scheduled",
+    "publish_time": "2025-01-16T09:00:00Z",
+    "goals": "Increase brand awareness, Generate 100 leads",
+    "last_updated_date": "2025-01-10 15:45:00"
+  }
+}
+```
+
+---
+
+### 5. Xóa Content Plan
+**DELETE** `/api/content-plans/{id}`
+
+**Path Parameters:**
+- `id` (UUID): ID của content plan
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Content plan deleted successfully",
+  "data": null
+}
+```
+
+---
+
+## Admin Endpoints
+
+### 6. Lấy Content Plans theo Status (Admin)
+**GET** `/api/admin/content-plans/status/{status}`
+
+**Path Parameters:**
+- `status` (string): Trạng thái cần lọc
+
+**Query Parameters:**
+- `limit` (int): Số lượng records (default: 20, max: 100)
+- `offset` (int): Vị trí bắt đầu (default: 0)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Content plans retrieved successfully",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "AI Productivity Tips",
+      "status": "scheduled",
+      "user_id": "123e4567-e89b-12d3-a456-426614174000",
+      "publish_time": "2025-01-15T14:30:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 15,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+---
+
+### 7. Lấy Content Plans đã lên lịch (Admin)
+**GET** `/api/admin/content-plans/scheduled`
+
+**Query Parameters:**
+- `limit` (int): Số lượng records (default: 50)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Scheduled content plans retrieved successfully",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "AI Productivity Tips",
+      "status": "scheduled",
+      "publish_time": "2025-01-15T14:30:00Z",
+      "channel_type": "blog",
+      "user_id": "123e4567-e89b-12d3-a456-426614174000"
+    }
+  ]
+}
+```
+
+---
+
+### 8. Đánh dấu đã xuất bản (Admin)
+**POST** `/api/admin/content-plans/{id}/publish`
+
+**Path Parameters:**
+- `id` (UUID): ID của content plan
+
+**Request Body:**
+```json
+{
+  "publish_post_id": "post_12345"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Content plan marked as published successfully",
+  "data": null
+}
+```
+
+---
+
+## Error Responses
+
+### 400 Bad Request
+```json
+{
+  "error": "Invalid status: invalid_status. Valid statuses: [draft, scheduled, published, cancelled, failed]"
+}
+```
+
+### 401 Unauthorized
+```json
+{
+  "error": "User ID is required"
+}
+```
+
+### 403 Forbidden
+```json
+{
+  "error": "Access denied"
+}
+```
+
+### 404 Not Found
+```json
+{
+  "error": "Content plan not found"
+}
+```
+
+### 500 Internal Server Error
+```json
+{
+  "error": "Failed to create content plan"
+}
+```
+
+---
+
+## Status Values
+- `draft`: Bản nháp
+- `scheduled`: Đã lên lịch
+- `published`: Đã xuất bản
+- `cancelled`: Đã hủy
+- `failed`: Xuất bản thất bại
+
+## Channel Types
+- `social_media`: Mạng xã hội
+- `blog`: Blog/Website
+- `email`: Email marketing
+- `video`: Video content
+- `website`: Website content
+- `newsletter`: Newsletter
+- `podcast`: Podcast
+- `webinar`: Webinar
+
+---
+
+## Example cURL Commands
+
+### Tạo Content Plan
+```bash
+curl -X POST "http://localhost:8080/api/content-plans" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -d '{
+    "task_date": "2025-01-15",
+    "title": "AI Productivity Tips for 2025",
+    "status": "draft",
+    "channel_type": "blog",
+    "product": "EmployeeAI Premium"
+  }'
+```
+
+### Lấy danh sách Content Plans
+```bash
+curl -X GET "http://localhost:8080/api/content-plans?limit=10&status=draft" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+### Cập nhật Content Plan
+```bash
+curl -X PUT "http://localhost:8080/api/content-plans/550e8400-e29b-41d4-a716-446655440000" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -d '{
+    "status": "scheduled",
+    "publish_time": "2025-01-16T09:00:00Z"
+  }'
+```
+
+### Xóa Content Plan
+```bash
+curl -X DELETE "http://localhost:8080/api/content-plans/550e8400-e29b-41d4-a716-446655440000" \
+  -H "Authorization: Bearer your_jwt_token"
+```
