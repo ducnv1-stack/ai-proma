@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,28 +15,34 @@
             font-family: 'Inter', sans-serif;
         }
 
+
         .chat-container {
             display: none;
         }
 
+
         .chat-container.active {
             display: flex;
         }
+
 
         .nav-item {
             color: black !important;
             transition: all 0.2s ease;
         }
 
+
         .nav-item:not(.bg-purple-600):hover {
             background-color: rgb(147, 51, 234) !important;
             color: white !important;
         }
 
+
         .nav-item:not(.bg-purple-600):hover i,
         .nav-item:not(.bg-purple-600):hover span {
             color: white !important;
         }
+
 
         /* Keep active item styling */
         .nav-item.bg-purple-600 {
@@ -43,30 +50,69 @@
             color: white !important;
         }
 
+
         .nav-item.bg-purple-600 i,
         .nav-item.bg-purple-600 span {
             color: white !important;
         }
 
+
         /* User dropdown animations */
-        #user-dropdown, #header-dropdown {
+        #user-dropdown,
+        #header-dropdown {
             transition: all 0.2s ease-in-out;
             transform-origin: bottom;
         }
 
-        #user-dropdown.hidden, #header-dropdown.hidden {
+
+        #user-dropdown.hidden,
+        #header-dropdown.hidden {
             opacity: 0;
             transform: scaleY(0.95);
         }
 
-        #user-dropdown:not(.hidden), #header-dropdown:not(.hidden) {
+
+        #user-dropdown:not(.hidden),
+        #header-dropdown:not(.hidden) {
             opacity: 1;
             transform: scaleY(1);
         }
 
+
         /* User menu button hover effect */
-        #user-menu-button:hover, #header-user-menu:hover {
+        #user-menu-button:hover,
+        #header-user-menu:hover {
             background-color: rgba(0, 0, 0, 0.05);
+        }
+
+
+        /* Disable all autocomplete and suggestions for chat input */
+        #chat-input {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+
+        #chat-input::-webkit-contacts-auto-fill-button,
+        #chat-input::-webkit-credentials-auto-fill-button {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            position: absolute !important;
+            right: 0 !important;
+        }
+
+
+        /* Hide browser autocomplete dropdown */
+        #chat-input::-webkit-list-button {
+            display: none;
+        }
+
+
+        /* Disable Grammarly and other extensions */
+        #chat-input[data-gramm="false"] {
+            outline: none !important;
         }
     </style>
 </head>
@@ -103,33 +149,57 @@
                     <i class="fas fa-tasks w-5 h-5 mr-3"></i>
                     <span>Tasks</span>
                 </a>
+
+
+                <!-- Direct Logout Button -->
+                <button id="sidebar-logout-button" onclick="simpleLogout()"
+                    class="nav-item flex items-center px-4 py-2 rounded-lg w-full text-left text-red-600 hover:bg-red-50 mt-4">
+                    <i class="fas fa-sign-out-alt w-5 h-5 mr-3"></i>
+                    <span>Đăng xuất</span>
+                </button>
             </nav>
 
             <!-- User Section -->
             <div class="px-4 pb-4 border-t border-gray-200 pt-4">
                 <div class="relative">
-                    <button id="user-menu-button" class="flex items-center w-full text-left hover:bg-gray-100 rounded-lg p-2 transition-colors">
-                        <img class="h-8 w-8 rounded-full" src="https://placehold.co/32x32/667eea/ffffff?text=U" alt="User">
+                    <button id="user-menu-button"
+                        class="flex items-center w-full text-left hover:bg-gray-100 rounded-lg p-2 transition-colors">
+                        <img class="h-8 w-8 rounded-full" src="https://placehold.co/32x32/667eea/ffffff?text=U"
+                            alt="User">
                         <div class="ml-3 flex-1">
-                            <p class="text-sm font-medium" style="color: rgb(228, 228, 231);" id="current-user">Demo User</p>
-                            <p class="text-xs" style="color: rgb(228, 228, 231); opacity: 0.7;">Online</p>
+                            <p class="text-sm font-medium text-gray-900" id="current-user">Loading...</p>
+                            <p class="text-xs text-green-500">Online</p>
                         </div>
                         <i class="fas fa-chevron-up text-gray-400 text-xs" id="user-menu-icon"></i>
                     </button>
-                    
+
                     <!-- User Dropdown Menu -->
-                    <div id="user-dropdown" class="hidden absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div id="user-dropdown"
+                        class="hidden absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                         <div class="py-1">
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-user mr-3 text-gray-400"></i>
+                                Hồ sơ
+                            </a>
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-id-card mr-3 text-gray-400"></i>
+                                Thông tin tài khoản
+                            </a>
                             <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i class="fas fa-user-circle mr-3 text-gray-400"></i>
                                 Thông tin cá nhân
+                            </a>
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-shield-alt mr-3 text-gray-400"></i>
+                                Bảo mật
                             </a>
                             <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i class="fas fa-cog mr-3 text-gray-400"></i>
                                 Cài đặt
                             </a>
                             <hr class="my-1">
-                            <button id="logout-button" class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                            <button id="logout-button" onclick="simpleLogout()"
+                                class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                                 <i class="fas fa-sign-out-alt mr-3 text-red-500"></i>
                                 Đăng xuất
                             </button>
@@ -150,40 +220,6 @@
                     <button class="text-gray-500 hover:text-gray-600">
                         <i class="fas fa-bell w-5 h-5"></i>
                     </button>
-                    <button class="text-gray-500 hover:text-gray-600">
-                        <i class="fas fa-cog w-5 h-5"></i>
-                    </button>
-                    
-                    <!-- User Profile Dropdown -->
-                    <div class="relative">
-                        <button id="header-user-menu" class="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
-                            <img class="h-8 w-8 rounded-full" src="https://placehold.co/32x32/667eea/ffffff?text=A" alt="Avatar">
-                            <i class="fas fa-chevron-down text-xs"></i>
-                        </button>
-                        
-                        <!-- Header Dropdown Menu -->
-                        <div id="header-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                            <div class="py-1">
-                                <div class="px-4 py-2 border-b border-gray-100">
-                                    <p class="text-sm font-medium text-gray-900" id="header-current-user">Demo User</p>
-                                    <p class="text-xs text-gray-500">Online</p>
-                                </div>
-                                <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="fas fa-user-circle mr-3 text-gray-400"></i>
-                                    Thông tin cá nhân
-                                </a>
-                                <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="fas fa-cog mr-3 text-gray-400"></i>
-                                    Cài đặt
-                                </a>
-                                <hr class="my-1">
-                                <button id="header-logout-button" class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                                    <i class="fas fa-sign-out-alt mr-3 text-red-500"></i>
-                                    Đăng xuất
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </header>
 
@@ -196,9 +232,6 @@
                             <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
                             <p class="mt-2 text-gray-600">Quản lý AI agents và tương tác với hệ thống Proma</p>
                         </div>
-                        <button class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700">
-                            <i class="fas fa-plus mr-2"></i>Tạo Agent Mới
-                        </button>
                     </div>
 
                     <!-- Stats Cards -->
@@ -333,7 +366,14 @@
                             <div class="flex items-center space-x-3">
                                 <div class="flex-1 relative">
                                     <input type="text" id="chat-input" placeholder="Talk to your Employee"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent pr-12">
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent pr-12"
+                                        autocomplete="off" 
+                                        autocorrect="off" 
+                                        autocapitalize="off" 
+                                        spellcheck="false"
+                                        data-gramm="false"
+                                        data-gramm_editor="false"
+                                        data-enable-grammarly="false">
                                 </div>
                                 <button id="send-button"
                                     class="w-10 h-10 bg-purple-600 text-white rounded-full hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 flex items-center justify-center">
@@ -366,77 +406,398 @@
         </div>
     </div>
 
-    <!-- Auth Modal -->
-    <div class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="auth-modal">
-        <div class="bg-white rounded-lg p-6 w-96">
-            <!-- Login Form -->
-            <div id="login-form-container">
-                <h2 class="text-xl font-bold mb-4">Đăng nhập Proma</h2>
-                <form id="login-form">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-2">Tên đăng nhập:</label>
-                        <input type="text" id="login-username" name="username" class="w-full p-2 border rounded-lg"
-                            required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-2">Mật khẩu:</label>
-                        <input type="password" id="login-password" name="password" class="w-full p-2 border rounded-lg"
-                            required>
-                    </div>
-                    <button type="submit"
-                        class="w-full bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 mb-2">
-                        Đăng nhập
-                    </button>
-                    <button type="button" onclick="showRegisterForm()"
-                        class="w-full bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600">
-                        Chưa có tài khoản? Đăng ký
-                    </button>
-                </form>
-            </div>
 
-            <!-- Register Form -->
-            <div id="register-form-container" class="hidden">
-                <h2 class="text-xl font-bold mb-4">Đăng ký Proma</h2>
-                <form id="register-form">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-2">Tên đăng nhập:</label>
-                        <input type="text" id="register-username" name="username" class="w-full p-2 border rounded-lg"
-                            required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-2">Mật khẩu:</label>
-                        <input type="password" id="register-password" name="password"
-                            class="w-full p-2 border rounded-lg" required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-2">Xác nhận mật khẩu:</label>
-                        <input type="password" id="register-confirm-password" name="confirm_password"
-                            class="w-full p-2 border rounded-lg" required>
-                    </div>
-                    <button type="submit"
-                        class="w-full bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 mb-2">
-                        Đăng ký
-                    </button>
-                    <button type="button" onclick="showLoginForm()"
-                        class="w-full bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600">
-                        Đã có tài khoản? Đăng nhập
-                    </button>
-                </form>
-            </div>
+    <script>
+        // Immediate authentication check before loading dashboard
+        (function () {
+            console.log('🔐 Pre-loading authentication check...');
 
-            <!-- Loading indicator -->
-            <div id="auth-loading" class="hidden text-center py-4">
-                <i class="fas fa-spinner fa-spin text-purple-600 text-2xl"></i>
-                <p class="mt-2 text-gray-600">Đang xử lý...</p>
-            </div>
+            // Development mode - bypass auth check
+            const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const bypassAuth = localStorage.getItem('bypass_auth') === 'true';
+            
+            if (isDevelopment || bypassAuth) {
+                console.log('🚧 Development mode detected - bypassing auth check');
+                console.log('💡 To enable auth check, remove "bypass_auth" from localStorage');
+                return;
+            }
 
-            <!-- Error message -->
-            <div id="auth-error" class="hidden mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            </div>
-        </div>
-    </div>
+            const token = localStorage.getItem('proma_token');
+            const userId = localStorage.getItem('user_id');
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const userName = localStorage.getItem('user_name');
+            const promaUser = localStorage.getItem('proma_user');
 
+            // Debug: Log all auth data
+            console.log('🔍 Auth data check:');
+            console.log('- proma_token:', token ? 'EXISTS' : 'MISSING');
+            console.log('- user_id:', userId ? userId : 'MISSING');
+            console.log('- isLoggedIn:', isLoggedIn);
+            console.log('- user_name:', userName ? userName : 'MISSING');
+            console.log('- proma_user:', promaUser ? promaUser : 'MISSING');
+
+            // More flexible auth check - only require token OR userId
+            const hasBasicAuth = token || userId || userName || promaUser;
+            
+            if (!hasBasicAuth) {
+                console.log('❌ No authentication data found at all, redirecting to login');
+                console.log('💡 Tip: Make sure you login first');
+                console.log('🔧 Or set localStorage.setItem("bypass_auth", "true") for development');
+                // Add delay to see the logs
+                setTimeout(() => {
+                    window.location.replace('login.html?error=unauthorized');
+                }, 3000);
+                return;
+            }
+
+            console.log('✅ Some auth data found, proceeding to load dashboard');
+            console.log('📝 Note: Dashboard will work with available auth data');
+        })();
+    </script>
+    
     <script src="dashboard-script-new.js"></script>
+    <script>
+        // Simple logout function that works independently
+        async function simpleLogout() {
+            console.log('🚪 Simple logout initiated');
+
+            try {
+                // Call logout API first
+                console.log('🚪 Calling logout API...');
+                const response = await fetch('http://localhost:8002/api/v1/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('proma_token')}`
+                    }
+                });
+
+                console.log('📡 Logout API response status:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ API logout successful:', data);
+                } else {
+                    console.log('⚠️ API logout failed, but continuing with local logout');
+                }
+            } catch (error) {
+                console.error('❌ Logout API error:', error);
+                console.log('⚠️ API call failed, but continuing with local logout');
+            }
+
+            // Clear all localStorage
+            try {
+                localStorage.clear();
+            } catch (e) {
+                console.log('Error clearing localStorage:', e);
+            }
+
+            // Clear sessionStorage
+            try {
+                sessionStorage.clear();
+            } catch (e) {
+                console.log('Error clearing sessionStorage:', e);
+            }
+
+            console.log('✅ All storage cleared, redirecting...');
+
+            // Redirect to login
+            window.location.href = 'login.html';
+        }
+
+        // Backup function in case the above doesn't work
+        function forceLogout() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('user_id');
+            window.location.replace('login.html');
+        }
+
+        // Simple user dropdown toggle function
+        function toggleUserDropdown() {
+            console.log('🔽 Toggle user dropdown called');
+            const dropdown = document.getElementById('user-dropdown');
+            const icon = document.getElementById('user-menu-icon');
+
+            if (dropdown) {
+                const isHidden = dropdown.classList.contains('hidden');
+                console.log('Dropdown is hidden:', isHidden);
+
+                if (isHidden) {
+                    dropdown.classList.remove('hidden');
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-up');
+                        icon.classList.add('fa-chevron-down');
+                    }
+                    console.log('✅ Dropdown shown');
+                } else {
+                    dropdown.classList.add('hidden');
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    }
+                    console.log('✅ Dropdown hidden');
+                }
+            } else {
+                console.error('❌ Dropdown element not found');
+            }
+        }
+
+        // Function to update user name display
+        function updateUserNameDisplay() {
+            console.log('👤 Updating user name display...');
+
+            // Get user data from localStorage
+            const userData = localStorage.getItem('proma_user_data');
+            const userName = localStorage.getItem('user_name');
+            const promaUser = localStorage.getItem('proma_user');
+
+            let displayName = 'Demo User'; // Default fallback
+
+            // Try to get user name from different sources
+            if (userData) {
+                try {
+                    const parsedData = JSON.parse(userData);
+                    if (parsedData.user_name) {
+                        displayName = parsedData.user_name;
+                        console.log('✅ Got user name from proma_user_data:', displayName);
+                    }
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                }
+            }
+
+            // Fallback to individual localStorage items
+            if (displayName === 'Demo User') {
+                if (userName) {
+                    displayName = userName;
+                    console.log('✅ Got user name from user_name:', displayName);
+                } else if (promaUser) {
+                    displayName = promaUser;
+                    console.log('✅ Got user name from proma_user:', displayName);
+                }
+            }
+
+            // Update the display
+            const currentUserElement = document.getElementById('current-user');
+            if (currentUserElement) {
+                currentUserElement.textContent = displayName;
+                console.log('✅ User name updated to:', displayName);
+            } else {
+                console.error('❌ Current user element not found');
+            }
+        }
+
+        // Simple function to test chat section
+        function testChatSection() {
+            console.log('🧪 Testing chat section...');
+            const chatSection = document.getElementById('chat-section');
+            console.log('Chat section found:', chatSection);
+
+            if (chatSection) {
+                // Hide all sections first
+                document.querySelectorAll('.section-content').forEach(section => {
+                    section.classList.add('hidden');
+                });
+
+                // Show chat section
+                chatSection.classList.remove('hidden');
+                console.log('✅ Chat section should now be visible');
+
+                // Update navigation
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('bg-purple-600', 'text-white');
+                });
+
+                const chatNavItem = document.querySelector('[onclick="showSection(\'chat\')"]');
+                if (chatNavItem) {
+                    chatNavItem.classList.add('bg-purple-600', 'text-white');
+                    console.log('✅ Chat nav item highlighted');
+                }
+            } else {
+                console.error('❌ Chat section not found!');
+            }
+        }
+
+
+        // Function to show dashboard section by default
+        function showDashboardSection() {
+            console.log('🏠 Showing dashboard section by default...');
+            
+            // Hide all sections first
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Show dashboard section
+            const dashboardSection = document.getElementById('dashboard-section');
+            if (dashboardSection) {
+                dashboardSection.classList.remove('hidden');
+                console.log('✅ Dashboard section shown');
+            }
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('bg-purple-600', 'text-white');
+            });
+            
+            // Add active class to dashboard nav item
+            const dashboardNavItem = document.querySelector('[onclick="showSection(\'dashboard\')"]');
+            if (dashboardNavItem) {
+                dashboardNavItem.classList.add('bg-purple-600', 'text-white');
+                console.log('✅ Dashboard nav item highlighted');
+            }
+            
+            // Update page title
+            const pageTitle = document.getElementById('page-title');
+            if (pageTitle) {
+                pageTitle.textContent = 'Dashboard';
+            }
+        }
+
+
+        // Function to disable all autocomplete features
+        function disableChatInputAutocomplete() {
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                // Set all autocomplete attributes
+                chatInput.setAttribute('autocomplete', 'off');
+                chatInput.setAttribute('autocorrect', 'off');
+                chatInput.setAttribute('autocapitalize', 'off');
+                chatInput.setAttribute('spellcheck', 'false');
+                chatInput.setAttribute('data-gramm', 'false');
+                chatInput.setAttribute('data-gramm_editor', 'false');
+                chatInput.setAttribute('data-enable-grammarly', 'false');
+                
+                // Disable browser form history
+                chatInput.setAttribute('name', 'chat-input-' + Date.now());
+                
+                // Clear any existing autocomplete list
+                chatInput.removeAttribute('list');
+                
+                console.log('✅ Chat input autocomplete disabled');
+            }
+        }
+
+
+        // Function to safely initialize navigation
+        function initializeNavigation() {
+            console.log('🧭 Initializing navigation...');
+            
+            // Make sure showSection function is available globally
+            if (typeof window.showSection !== 'function') {
+                window.showSection = function(sectionName) {
+                    console.log('📍 Navigating to section:', sectionName);
+                    
+                    try {
+                        // Hide all sections
+                        document.querySelectorAll('.section-content').forEach(section => {
+                            section.classList.add('hidden');
+                        });
+                        
+                        // Show target section
+                        let targetSection;
+                        if (sectionName === 'dashboard') {
+                            targetSection = document.getElementById('dashboard-section');
+                        } else if (sectionName === 'chat') {
+                            targetSection = document.getElementById('chat-section');
+                        } else {
+                            targetSection = document.getElementById(sectionName + '-section');
+                        }
+                        
+                        if (targetSection) {
+                            targetSection.classList.remove('hidden');
+                            console.log('✅ Section shown:', sectionName);
+                        }
+                        
+                        // Update navigation highlighting
+                        document.querySelectorAll('.nav-item').forEach(item => {
+                            item.classList.remove('bg-purple-600', 'text-white');
+                        });
+                        
+                        const activeNavItem = document.querySelector(`[onclick="showSection('${sectionName}')"]`);
+                        if (activeNavItem) {
+                            activeNavItem.classList.add('bg-purple-600', 'text-white');
+                        }
+                        
+                        // Update page title
+                        const pageTitle = document.getElementById('page-title');
+                        if (pageTitle) {
+                            const titles = {
+                                'dashboard': 'Dashboard',
+                                'chat': 'Chat AI',
+                                'agents': 'Agents',
+                                'files': 'File Management',
+                                'tasks': 'Tasks'
+                            };
+                            pageTitle.textContent = titles[sectionName] || 'Dashboard';
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Error in showSection:', error);
+                    }
+                };
+            }
+            
+            console.log('✅ Navigation initialized');
+        }
+
+
+        // Initialize user dropdown functionality
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('🚀 Initializing dashboard...');
+
+            try {
+                // Disable chat input autocomplete
+                disableChatInputAutocomplete();
+
+                // Update user name first
+                updateUserNameDisplay();
+
+                // Show dashboard section by default
+                showDashboardSection();
+
+                // Initialize navigation safely
+                initializeNavigation();
+
+                console.log('✅ Dashboard initialized successfully');
+            } catch (error) {
+                console.error('❌ Error initializing dashboard:', error);
+                // Fallback: just show dashboard section
+                const dashboardSection = document.getElementById('dashboard-section');
+                if (dashboardSection) {
+                    dashboardSection.classList.remove('hidden');
+                }
+            }
+
+            const userMenuButton = document.getElementById('user-menu-button');
+            const dropdown = document.getElementById('user-dropdown');
+
+            if (userMenuButton) {
+                userMenuButton.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    console.log('👤 User menu button clicked');
+                    toggleUserDropdown();
+                });
+                console.log('✅ User menu button event added');
+            } else {
+                console.error('❌ User menu button not found');
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                if (dropdown && !dropdown.contains(e.target) && !userMenuButton.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                    const icon = document.getElementById('user-menu-icon');
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    }
+                }
+            });
+
+            console.log('✅ User dropdown initialized');
+        });
+    </script>
 </body>
 
 </html>

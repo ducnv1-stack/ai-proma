@@ -106,16 +106,18 @@ class ChatMessage(BaseModel):
 
 class UserRegister(BaseModel):
     user_name: str
+    gmail: str
     user_pass: str
     confirm_password: str
 
 class UserLogin(BaseModel):
-    user_name: str
+    gmail: str
     user_pass: str
 
 class UserResponse(BaseModel):
     user_id: str
     user_name: str
+    gmail: str
     workspace_id: str
     is_active: bool
     created_at: str
@@ -543,9 +545,9 @@ async def register_user(user_data: UserRegister, db: AsyncSession = Depends(get_
             detail="Mật khẩu xác nhận không khớp"
         )
     
-    # Check if username already exists
+    # Check if username or email already exists
     try:
-        print(f"Register attempt for user: {user_data.user_name}")  # Debug log
+        print(f"Register attempt for user: {user_data.user_name}, email: {user_data.gmail}")  # Debug log
         
         from sqlalchemy import text
         import uuid
@@ -556,7 +558,6 @@ async def register_user(user_data: UserRegister, db: AsyncSession = Depends(get_
             text('SELECT user_name FROM "ai_proma"."users_proma" WHERE user_name = :username'),
             {"username": user_data.user_name}
         )
-        print("User existence check completed")  # Debug log
         existing_user = result.fetchone()
         if existing_user:
             raise HTTPException(
@@ -564,27 +565,47 @@ async def register_user(user_data: UserRegister, db: AsyncSession = Depends(get_
                 detail="Tên đăng nhập đã tồn tại"
             )
         
+        # Check if email already exists
+        print(f"Checking if email exists: {user_data.gmail}")  # Debug log
+        result = await db.execute(
+            text('SELECT gmail FROM "ai_proma"."users_proma" WHERE gmail = :gmail'),
+            {"gmail": user_data.gmail}
+        )
+        existing_email = result.fetchone()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email đã được sử dụng"
+            )
+        
         # Create new user - store password directly (no hashing for simplicity)
         new_user_id = str(uuid.uuid4())
         
         await db.execute(
-            text('INSERT INTO "ai_proma"."users_proma" (user_id, user_name, user_pass) VALUES (:user_id, :user_name, :user_pass)'),
+            text('INSERT INTO "ai_proma"."users_proma" (user_id, user_name, user_pass, gmail) VALUES (:user_id, :user_name, :user_pass, :gmail)'),
             {
                 "user_id": new_user_id,
                 "user_name": user_data.user_name,
-                "user_pass": user_data.user_pass  # Store password directly
+                "user_pass": user_data.user_pass,  # Store password directly
+                "gmail": user_data.gmail
             }
         )
         await db.commit()
         
-        # Create access token
-        access_token = create_access_token(data={"sub": new_user_id})
+        # Create access token with user info
+        access_token = create_access_token(data={
+            "sub": new_user_id,
+            "user_id": new_user_id,
+            "user_name": user_data.user_name,
+            "gmail": user_data.gmail
+        })
         
         # Return response
         from datetime import datetime
         user_response = UserResponse(
             user_id=new_user_id,
             user_name=user_data.user_name,
+            gmail=user_data.gmail,
             workspace_id='default',
             is_active=True,
             created_at=datetime.now().isoformat()
@@ -607,19 +628,33 @@ async def register_user(user_data: UserRegister, db: AsyncSession = Depends(get_
 
 @app.post("/api/v1/auth/login", response_model=LoginResponse)
 async def login_user(user_data: UserLogin, db: AsyncSession = Depends(get_db_session)):
-    """Login user"""
-    print(f"🔐 Login attempt: {user_data.user_name}")
+    """Login user with gmail and password"""
+    print(f"🔐 Login attempt: {user_data.gmail}")
     print(f"📝 Request data: {user_data}")
+    
+    # Validate input data
+    if not user_data.gmail or not user_data.gmail.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Email không được để trống"
+        )
+    
+    if not user_data.user_pass or not user_data.user_pass.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Mật khẩu không được để trống"
+        )
+    
     from models import User
     from sqlalchemy import select
     
     try:
         
-        # Find user by username in ai_proma.users_proma table
+        # Find user by gmail in ai_proma.users_proma table
         from sqlalchemy import text
         result = await db.execute(
-            text('SELECT user_id, user_name, user_pass FROM "ai_proma"."users_proma" WHERE user_name = :username'),
-            {"username": user_data.user_name}
+            text('SELECT user_id, user_name, user_pass, gmail FROM "ai_proma"."users_proma" WHERE gmail = :gmail'),
+            {"gmail": user_data.gmail}
         )
         user_row = result.fetchone()
         
@@ -628,10 +663,10 @@ async def login_user(user_data: UserLogin, db: AsyncSession = Depends(get_db_ses
         if not user_row:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Tên đăng nhập không tồn tại"
+                detail="Email không tồn tại trong hệ thống"
             )
             
-        user_id, user_name, stored_password = user_row
+        user_id, user_name, stored_password, gmail = user_row
         
         # Check password - compare directly with stored password
         print(f"Stored password: '{stored_password}'")  # Debug log
@@ -657,14 +692,20 @@ async def login_user(user_data: UserLogin, db: AsyncSession = Depends(get_db_ses
         
         print("Password match successful!")
         
-        # Create access token
-        access_token = create_access_token(data={"sub": str(user_row[0])})
+        # Create access token with user info
+        access_token = create_access_token(data={
+            "sub": str(user_id),
+            "user_id": str(user_id),
+            "user_name": user_name,
+            "gmail": gmail
+        })
         
         # Return response
         from datetime import datetime
         user_response = UserResponse(
-            user_id=str(user_row[0]),
-            user_name=user_row[1],
+            user_id=str(user_id),
+            user_name=user_name,
+            gmail=gmail,
             workspace_id='default',
             is_active=True,
             created_at=datetime.now().isoformat()
@@ -679,37 +720,105 @@ async def login_user(user_data: UserLogin, db: AsyncSession = Depends(get_db_ses
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Login error: {str(e)}")  # Debug log
+        print(f"❌ Login error: {str(e)}")  # Debug log
+        print(f"❌ Error type: {type(e)}")  # Debug log
+        await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Lỗi khi đăng nhập: {str(e)}"
+            detail=f"Lỗi hệ thống khi đăng nhập: {str(e)}"
         )
 
 @app.get("/api/v1/auth/me", response_model=UserResponse)
-async def get_current_user_info(current_user = Depends(get_current_user)):
-    """Get current user information"""
-    return UserResponse(
-        user_id=str(current_user.user_id),
-        user_name=current_user.user_name,
-        workspace_id=current_user.workspace_id,
-        is_active=current_user.is_active,
-        created_at=current_user.created_at.isoformat() if current_user.created_at else None
-    )
+async def get_current_user_info(current_user: dict = Depends(verify_token)):
+    """Get current user information from JWT token"""
+    try:
+        user_id = current_user.get('user_id') or current_user.get('sub')
+        user_name = current_user.get('user_name', 'Unknown User')
+        gmail = current_user.get('gmail', 'unknown@example.com')
+        
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token không hợp lệ - thiếu user_id"
+            )
+        
+        return UserResponse(
+            user_id=str(user_id),
+            user_name=user_name,
+            gmail=gmail,
+            workspace_id='default',
+            is_active=True,
+            created_at=datetime.now().isoformat()
+        )
+    except Exception as e:
+        print(f"❌ Get user info error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token không hợp lệ hoặc đã hết hạn"
+        )
+
+@app.get("/api/v1/auth/verify")
+async def verify_user_auth(current_user: dict = Depends(verify_token)):
+    """Verify user authentication for dashboard access"""
+    try:
+        user_id = current_user.get('user_id') or current_user.get('sub')
+        user_name = current_user.get('user_name')
+        
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Không có quyền truy cập - thiếu user_id"
+            )
+        
+        print(f"✅ User verified: {user_name} (ID: {user_id})")
+        
+        return {
+            "authenticated": True,
+            "user_id": str(user_id),
+            "user_name": user_name,
+            "message": "Xác thực thành công"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Auth verification error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Xác thực thất bại"
+        )
+
+@app.get("/api/v1/test")
+def test_endpoint():
+    """Test endpoint to verify server is working"""
+    return {"message": "Server is working", "status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 @app.post("/api/v1/auth/logout")
 async def logout_user(current_user: dict = Depends(verify_token)):
     """Logout user - invalidate token on client side"""
-    print(f"🚪 Logout request from user: {current_user.get('user_name', 'unknown')}")
-    
-    # Since we're using JWT tokens, we can't invalidate them server-side without a blacklist
-    # The client will handle removing the token from localStorage
-    # In a production system, you might want to implement a token blacklist
-    
-    return {
-        "message": "Đăng xuất thành công",
-        "status": "success",
-        "user_name": current_user.get("user_name", "unknown")
-    }
+    try:
+        user_id = current_user.get('sub', 'unknown')
+        user_name = current_user.get('user_name', f'user_{user_id}')
+        
+        print(f"🚪 Logout request from user_id: {user_id}, user_name: {user_name}")
+        print(f"🔍 Token payload: {current_user}")
+        
+        # Since we're using JWT tokens, we can't invalidate them server-side without a blacklist
+        # The client will handle removing the token from localStorage
+        # In a production system, you might want to implement a token blacklist
+        
+        return {
+            "message": "Đăng xuất thành công",
+            "status": "success",
+            "user_id": user_id,
+            "user_name": user_name
+        }
+    except Exception as e:
+        print(f"❌ Logout error: {str(e)}")
+        return {
+            "message": "Đăng xuất thành công",
+            "status": "success",
+            "error": str(e)
+        }
 
 @app.post("/api/v1/chat", response_model=ChatResponse)
 async def chat_with_ai(

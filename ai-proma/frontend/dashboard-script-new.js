@@ -38,14 +38,8 @@ class PromaDashboard {
         this.typingIndicator = document.getElementById('typing-indicator');
         this.charCount = document.getElementById('char-count');
 
-        // Modal elements
-        this.authModal = document.getElementById('auth-modal');
-        this.loginForm = document.getElementById('login-form');
-        this.registerForm = document.getElementById('register-form');
-        this.loginFormContainer = document.getElementById('login-form-container');
-        this.registerFormContainer = document.getElementById('register-form-container');
-        this.authLoading = document.getElementById('auth-loading');
-        this.authError = document.getElementById('auth-error');
+        // Modal elements (removed - using separate login/register pages)
+        // All auth modal elements removed since we use separate pages now
 
         // Header elements
         this.agentName = document.getElementById('agent-name');
@@ -58,6 +52,7 @@ class PromaDashboard {
         this.userDropdown = document.getElementById('user-dropdown');
         this.userMenuIcon = document.getElementById('user-menu-icon');
         this.logoutButton = document.getElementById('logout-button');
+        this.sidebarLogoutButton = document.getElementById('sidebar-logout-button');
 
         // Header user menu elements
         this.headerUserMenu = document.getElementById('header-user-menu');
@@ -107,9 +102,13 @@ class PromaDashboard {
             this.registerForm.addEventListener('submit', (e) => this.handleRegister(e));
         }
 
-        // Global functions for form switching
-        window.showLoginForm = () => this.showLoginForm();
-        window.showRegisterForm = () => this.showRegisterForm();
+        // Global functions removed - using separate login/register pages
+
+        // Global logout function for emergency use
+        window.performLogout = () => {
+            console.log('🚪 Global logout called');
+            this.performLogout();
+        };
 
         // File input
         if (this.fileInput) {
@@ -135,9 +134,25 @@ class PromaDashboard {
         if (this.logoutButton) {
             this.logoutButton.addEventListener('click', (e) => {
                 e.preventDefault();
+                console.log('🚪 User dropdown logout button clicked');
                 this.handleLogout();
             });
         }
+
+        if (this.sidebarLogoutButton) {
+            this.sidebarLogoutButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('🚪 Sidebar logout button clicked');
+                this.handleLogout();
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (this.userDropdown && !this.userDropdown.contains(e.target) && !this.userMenuButton.contains(e.target)) {
+                this.hideUserDropdown();
+            }
+        });
 
         if (this.headerLogoutButton) {
             this.headerLogoutButton.addEventListener('click', (e) => {
@@ -169,9 +184,20 @@ class PromaDashboard {
         });
 
         // Show selected section
-        const targetSection = document.getElementById(`${sectionName}-section`);
+        let targetSection;
+        if (sectionName === 'dashboard') {
+            targetSection = document.getElementById('dashboard-section');
+        } else if (sectionName === 'chat') {
+            targetSection = document.getElementById('chat-section');
+        } else {
+            targetSection = document.getElementById(`${sectionName}-section`);
+        }
+        
         if (targetSection) {
             targetSection.classList.remove('hidden');
+            console.log(`✅ Showing section: ${sectionName}`, targetSection);
+        } else {
+            console.error(`❌ Section not found: ${sectionName}`);
         }
 
         // Add active class to clicked nav item
@@ -429,8 +455,7 @@ class PromaDashboard {
     // Authentication methods
     async handleLogin(e) {
         e.preventDefault();
-        this.hideAuthError(); // Hide any previous messages
-        this.showAuthLoading();
+        // Auth functions removed - using separate pages
 
         const formData = new FormData(e.target);
         const username = formData.get('username');
@@ -461,19 +486,17 @@ class PromaDashboard {
                 localStorage.setItem('proma_agent', this.agentId);
                 localStorage.setItem('proma_user_data', JSON.stringify(data.user));
 
-                this.authModal.style.display = 'none';
+                // Modal removed - user already authenticated
                 this.updateUserInfo();
                 this.clearChat();
             } else {
-                this.hideAuthLoading();
-                this.showLoginForm();
-                this.showAuthError(data.detail || 'Đăng nhập thất bại. Vui lòng thử lại.');
+                // Redirect to login page on failure
+                window.location.href = 'login.html?error=login_failed';
             }
         } catch (error) {
             console.error('Login error:', error);
-            this.hideAuthLoading();
-            this.showLoginForm();
-            this.showAuthError('Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.');
+            // Redirect to login page on error
+            window.location.href = 'login.html?error=network_error';
         }
     }
 
@@ -481,8 +504,7 @@ class PromaDashboard {
         e.preventDefault();
         console.log('📝 Register form submitted');
 
-        this.hideAuthError(); // Hide any previous error messages
-        this.showAuthLoading();
+        // Auth functions removed - using separate pages
 
         const formData = new FormData(e.target);
         const username = formData.get('username');
@@ -534,12 +556,8 @@ class PromaDashboard {
                     this.registerForm.reset();
                 }
 
-                // Hide loading and show login form
-                this.hideAuthLoading();
-                this.showLoginForm();
-
-                // Show success message
-                this.showAuthSuccess(`🎉 Đăng ký thành công! Vui lòng đăng nhập với tài khoản "${username}".`);
+                // Redirect to login page with success message
+                window.location.href = `login.html?success=registered&username=${encodeURIComponent(username)}`;
 
                 // Auto-fill username in login form
                 const loginUsernameInput = document.getElementById('login-username');
@@ -550,65 +568,331 @@ class PromaDashboard {
 
             } else {
                 console.log('❌ Registration failed:', data.detail);
-                this.hideAuthLoading();
-                this.showRegisterForm();
-                this.showAuthError(data.detail || 'Đăng ký thất bại. Vui lòng thử lại.');
+                // Redirect to register page on failure
+                window.location.href = 'register.html?error=register_failed';
             }
         } catch (error) {
             console.error('❌ Register error:', error);
-            this.hideAuthLoading();
-            this.showRegisterForm();
-            this.showAuthError('Có lỗi xảy ra khi đăng ký. Vui lòng kiểm tra kết nối mạng và thử lại.');
+            // Redirect to register page on error
+            window.location.href = 'register.html?error=network_error';
         }
     }
 
-    checkAuthentication() {
+    async checkAuth() {
         console.log('🔐 Checking authentication...');
-        const token = localStorage.getItem('proma_token');
-        const user = localStorage.getItem('proma_user');
 
-        if (token && user) {
-            console.log('✅ User authenticated:', user);
+        // Check local authentication data first
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const userId = localStorage.getItem('user_id');
+        const userName = localStorage.getItem('user_name');
+        const userEmail = localStorage.getItem('user_email');
+        const token = localStorage.getItem('proma_token');
+        
+        console.log('🔍 Local auth check results:', {
+            isLoggedIn,
+            userId,
+            userName,
+            userEmail,
+            hasToken: !!token
+        });
+        
+        // If no local auth data, redirect to login
+        if (!token || !userId || isLoggedIn !== 'true') {
+            console.log('❌ No local authentication data, redirecting to login');
+            this.clearIncompleteAuthData();
+            window.location.href = 'login.html?error=unauthorized';
+            return;
+        }
+        
+        // Verify authentication with backend
+        try {
+            console.log('🚀 Verifying authentication with backend...');
+            const response = await fetch(`${this.apiUrl}/api/v1/auth/verify`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            console.log('📡 Auth verification response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Backend authentication verified:', data);
+                
+                // Set instance variables from verified data
+                this.token = token;
+                this.currentUser = data.user_name || userName;
+                this.userId = data.user_id || userId;
+                this.userEmail = userEmail;
+                this.workspaceId = localStorage.getItem('proma_workspace') || 'default';
+                this.agentId = localStorage.getItem('proma_agent') || 'project_manager_agent';
+                
+                console.log('👤 User info verified and loaded:', {
+                    user_id: this.userId,
+                    user_name: this.currentUser,
+                    user_email: this.userEmail
+                });
+                
+                // Update UI with user info
+                this.updateUserInfo();
+                
+                // Add welcome message after a short delay
+                setTimeout(() => {
+                    this.addWelcomeMessage();
+                }, 500);
+                
+            } else {
+                console.log('❌ Backend authentication failed');
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Auth verification error:', errorData);
+                
+                // Clear invalid auth data and redirect
+                this.clearIncompleteAuthData();
+                window.location.href = 'login.html?error=session_expired';
+            }
+            
+        } catch (error) {
+            console.error('❌ Auth verification network error:', error);
+            
+            // On network error, allow access but show warning
+            console.log('⚠️ Network error during auth verification, allowing local access');
+            
+            // Set instance variables from local data
             this.token = token;
-            this.currentUser = user;
+            this.currentUser = userName;
+            this.userId = userId;
+            this.userEmail = userEmail;
             this.workspaceId = localStorage.getItem('proma_workspace') || 'default';
             this.agentId = localStorage.getItem('proma_agent') || 'project_manager_agent';
-            this.authModal.style.display = 'none';
+            
+            // Update UI with user info
             this.updateUserInfo();
+            
+            // Add welcome message with warning
+            setTimeout(() => {
+                this.addWelcomeMessage();
+                this.showNetworkWarning();
+            }, 500);
+        }
+    }
 
-            // Add welcome message
+    showNetworkWarning() {
+        // Show a subtle warning about network connectivity
+        const warningDiv = document.createElement('div');
+        warningDiv.className = 'fixed top-4 right-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-lg shadow-md z-50';
+        warningDiv.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span class="text-sm">Không thể xác thực với server. Một số tính năng có thể bị hạn chế.</span>
+            </div>
+        `;
+        
+        document.body.appendChild(warningDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (warningDiv.parentNode) {
+                warningDiv.remove();
+            }
+        }, 5000);
+    }
+
+    clearIncompleteAuthData() {
+        const authKeys = [
+            'proma_token', 'proma_user', 'proma_user_data', 'proma_workspace',
+            'isLoggedIn', 'user_id', 'user_name', 'user_email', 'rememberMe',
+            'login_timestamp'
+        ];
+        
+        authKeys.forEach(key => {
+            localStorage.removeItem(key);
+        });
+    }
+
+    updateUserInfo() {
+        console.log('👤 Updating user info...');
+
+        // Get user data from localStorage
+        const userData = localStorage.getItem('proma_user_data');
+        let user = null;
+
+        if (userData) {
+            try {
+                user = JSON.parse(userData);
+            } catch (e) {
+                console.error('Error parsing user data:', e);
+            }
+        }
+
+        // Fallback to individual localStorage items
+        if (!user) {
+            user = {
+                user_name: localStorage.getItem('user_name') || localStorage.getItem('proma_user') || 'Demo User',
+                gmail: localStorage.getItem('user_email') || 'demo@example.com',
+                user_id: localStorage.getItem('user_id') || 'demo-id'
+            };
+        }
+
+        // Update current user reference
+        this.currentUser = user.user_name;
+
+        // Update sidebar user info
+        const currentUserElement = document.getElementById('current-user');
+        if (currentUserElement) {
+            currentUserElement.textContent = user.user_name;
+        }
+
+        // Update header user info
+        const headerCurrentUserElement = document.getElementById('header-current-user');
+        if (headerCurrentUserElement) {
+            headerCurrentUserElement.textContent = user.user_name;
+        }
+
+        // Update user email display if exists
+        const userEmailElements = document.querySelectorAll('.user-email');
+        userEmailElements.forEach(element => {
+            element.textContent = user.gmail;
+        });
+
+        console.log('✅ User info updated:', user);
+    }
+
+    // User dropdown methods
+    toggleUserDropdown() {
+        if (this.userDropdown) {
+            const isHidden = this.userDropdown.classList.contains('hidden');
+            if (isHidden) {
+                this.showUserDropdown();
+            } else {
+                this.hideUserDropdown();
+            }
+        }
+    }
+
+    showUserDropdown() {
+        if (this.userDropdown) {
+            this.userDropdown.classList.remove('hidden');
+            if (this.userMenuIcon) {
+                this.userMenuIcon.classList.remove('fa-chevron-up');
+                this.userMenuIcon.classList.add('fa-chevron-down');
+            }
+        }
+    }
+
+    hideUserDropdown() {
+        if (this.userDropdown) {
+            this.userDropdown.classList.add('hidden');
+            if (this.userMenuIcon) {
+                this.userMenuIcon.classList.remove('fa-chevron-down');
+                this.userMenuIcon.classList.add('fa-chevron-up');
+            }
+        }
+    }
+
+// Header dropdown methods
+toggleHeaderDropdown() {
+if (this.headerDropdown) {
+    const isHidden = this.headerDropdown.classList.contains('hidden');
+    if (isHidden) {
+        this.showHeaderDropdown();
+    } else {
+        this.hideHeaderDropdown();
+    }
+}
+}
+
+showHeaderDropdown() {
+if (this.headerDropdown) {
+    this.headerDropdown.classList.remove('hidden');
+}
+}
+
+hideHeaderDropdown() {
+if (this.headerDropdown) {
+    this.headerDropdown.classList.add('hidden');
+}
+}
+
+// Logout functionality
+async handleLogout() {
+console.log('🚪 Logout initiated');
+
+try {
+    // Call logout API first
+    console.log('🚪 Calling logout API...');
+    const token = localStorage.getItem('proma_token');
+
+    if (token) {
+        const response = await fetch(`${this.apiUrl}/api/v1/auth/logout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        console.log('📡 Logout API response status:', response.status);
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('✅ API logout successful:', data);
             setTimeout(() => {
                 this.addWelcomeMessage();
             }, 500);
         } else {
-            console.log('❌ User not authenticated, showing login form');
-            this.authModal.style.display = 'flex';
-            this.showLoginForm();
+            console.log('❌ User not authenticated, redirecting to login');
+            window.location.href = 'login.html';
         }
     }
 
     updateUserInfo() {
-        if (this.currentUserEl) {
-            this.currentUserEl.textContent = this.currentUser || 'User';
-            // Set user name color to black
-            this.currentUserEl.style.color = '#000000';
-            this.currentUserEl.classList.remove('text-gray-900');
-            this.currentUserEl.classList.add('text-black');
+        console.log('👤 Updating user info...');
+        
+        // Get user data from localStorage
+        const userData = localStorage.getItem('proma_user_data');
+        let user = null;
+        
+        if (userData) {
+            try {
+                user = JSON.parse(userData);
+            } catch (e) {
+                console.error('Error parsing user data:', e);
+            }
         }
-
+        
+        // Fallback to individual localStorage items
+        if (!user) {
+            user = {
+                user_name: localStorage.getItem('user_name') || localStorage.getItem('proma_user') || 'Demo User',
+                gmail: localStorage.getItem('user_email') || 'demo@example.com',
+                user_id: localStorage.getItem('user_id') || 'demo-id'
+            };
+        }
+        
+        // Update current user reference
+        this.currentUser = user.user_name;
+        
+        // Update sidebar user info
+        const currentUserElement = document.getElementById('current-user');
+        if (currentUserElement) {
+            currentUserElement.textContent = user.user_name;
+        }
+        
         // Update header user info
-        if (this.headerCurrentUser) {
-            this.headerCurrentUser.textContent = this.currentUser || 'User';
+        const headerCurrentUserElement = document.getElementById('header-current-user');
+        if (headerCurrentUserElement) {
+            headerCurrentUserElement.textContent = user.user_name;
         }
-
-        // Update online status to green color
-        const onlineStatusEl = document.querySelector('#current-user').nextElementSibling;
-        if (onlineStatusEl) {
-            onlineStatusEl.textContent = 'Online';
-            onlineStatusEl.style.color = '#10b981'; // Green color
-            onlineStatusEl.classList.remove('text-gray-500');
-            onlineStatusEl.classList.add('text-green-500');
-        }
+        
+        // Update user email display if exists
+        const userEmailElements = document.querySelectorAll('.user-email');
+        userEmailElements.forEach(element => {
+            element.textContent = user.gmail;
+        });
+        
+        console.log('✅ User info updated:', user);
     }
 
     // User dropdown methods
@@ -672,46 +956,77 @@ class PromaDashboard {
         console.log('🚪 Logout initiated');
 
         try {
-            // Call logout API endpoint
-            const response = await fetch(`${this.apiUrl}/api/v1/auth/logout`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.token}`
+            // Call logout API first
+            console.log('🚪 Calling logout API...');
+            const token = localStorage.getItem('proma_token');
+            
+            if (token) {
+                const response = await fetch(`${this.apiUrl}/api/v1/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                console.log('📡 Logout API response status:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ API logout successful:', data);
+                } else {
+                    console.log('⚠️ API logout failed, but continuing with local logout');
                 }
-            });
-
-            const data = await response.json();
-            console.log('🚪 Logout response:', data);
-
-            // Clear all stored data
-            this.clearAuthData();
-
-            // Hide dropdowns
-            this.hideUserDropdown();
-            this.hideHeaderDropdown();
-
-            // Clear chat
-            this.clearChat();
-
-            // Show auth modal
-            this.authModal.style.display = 'flex';
-            this.showLoginForm();
-
-            // Show success message
-            this.showAuthSuccess('Đăng xuất thành công!');
-
-            console.log('✅ Logout completed successfully');
-
+            } else {
+                console.log('⚠️ No token found, skipping API call');
+            }
         } catch (error) {
-            console.error('❌ Logout error:', error);
-
-            // Even if API call fails, clear local data
-            this.clearAuthData();
-            this.authModal.style.display = 'flex';
-            this.showLoginForm();
-            this.showAuthError('Đã đăng xuất (có lỗi kết nối server)');
+            console.error('❌ Logout API error:', error);
+            console.log('⚠️ API call failed, but continuing with local logout');
         }
+
+        // Always perform local logout
+        this.performLogout();
+    }
+
+    performLogout() {
+        console.log('🚪 Performing logout...');
+
+        // Clear all localStorage data immediately (no API calls)
+        const keysToRemove = [
+            'user_id', 'user_email', 'user_name', 'user_company',
+            'isLoggedIn', 'rememberMe',
+            'proma_token', 'proma_user', 'proma_workspace',
+            'proma_agent', 'proma_user_data', 'proma_settings'
+        ];
+
+        keysToRemove.forEach(key => {
+            try {
+                localStorage.removeItem(key);
+            } catch (e) {
+                console.log(`Error removing ${key}:`, e);
+            }
+        });
+
+        // Clear session storage as well
+        try {
+            sessionStorage.clear();
+        } catch (e) {
+            console.log('Error clearing session storage:', e);
+        }
+
+        // Reset instance variables
+        this.token = null;
+        this.currentUser = null;
+        this.sessionId = null;
+        this.workspaceId = null;
+
+        console.log('✅ All data cleared, redirecting to login...');
+
+        // Force redirect to login page
+        setTimeout(() => {
+            window.location.replace('login.html');
+        }, 100);
     }
 
     clearAuthData() {
@@ -746,73 +1061,10 @@ class PromaDashboard {
             this.registerFormContainer.classList.add('hidden');
             this.registerFormContainer.style.display = 'none';
         }
-        this.hideAuthError();
+        // Auth functions removed
     }
 
-    hideAuthLoading() {
-        console.log('⏹️ Hiding auth loading...');
-        if (this.authLoading) {
-            this.authLoading.classList.add('hidden');
-            this.authLoading.style.display = 'none';
-        }
-    }
-
-    showLoginForm() {
-        console.log('📝 Showing login form...');
-        this.hideAuthLoading();
-        if (this.loginFormContainer) {
-            this.loginFormContainer.classList.remove('hidden');
-            this.loginFormContainer.style.display = 'block';
-        }
-        if (this.registerFormContainer) {
-            this.registerFormContainer.classList.add('hidden');
-            this.registerFormContainer.style.display = 'none';
-        }
-        // Don't hide success message when showing login form after successful registration
-        // this.hideAuthError();
-    }
-
-    showRegisterForm() {
-        console.log('📝 Showing register form...');
-        this.hideAuthLoading();
-        if (this.loginFormContainer) {
-            this.loginFormContainer.classList.add('hidden');
-            this.loginFormContainer.style.display = 'none';
-        }
-        if (this.registerFormContainer) {
-            this.registerFormContainer.classList.remove('hidden');
-            this.registerFormContainer.style.display = 'block';
-        }
-        this.hideAuthError();
-    }
-
-    showAuthError(message) {
-        console.log('❌ Showing error:', message);
-        if (this.authError) {
-            this.authError.textContent = message;
-            this.authError.classList.remove('hidden');
-            this.authError.style.display = 'block';
-            this.authError.className = 'mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded';
-        }
-    }
-
-    showAuthSuccess(message) {
-        console.log('✅ Showing success:', message);
-        if (this.authError) {
-            this.authError.textContent = message;
-            this.authError.classList.remove('hidden');
-            this.authError.style.display = 'block';
-            this.authError.className = 'mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded';
-        }
-    }
-
-    hideAuthError() {
-        console.log('🙈 Hiding auth error/success message');
-        if (this.authError) {
-            this.authError.classList.add('hidden');
-            this.authError.style.display = 'none';
-        }
-    }
+    // Auth modal functions removed - using separate login/register pages
 
     loadSettings() {
         const settings = localStorage.getItem('proma_settings');

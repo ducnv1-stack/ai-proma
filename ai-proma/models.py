@@ -17,6 +17,7 @@ class User(Base):
     user_id = Column(String, primary_key=True)  # Matches existing table structure
     user_name = Column(String(50), unique=True, nullable=False, index=True)
     user_pass = Column(String(255), nullable=False)  # Hashed password
+    gmail = Column(String(225), unique=True, nullable=True, index=True)  # Email field
     
     # Relationships
     sessions = relationship("ChatSession", back_populates="user")

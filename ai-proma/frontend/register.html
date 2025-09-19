@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Proma AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .main-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .register-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .form-input {
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .register-card {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .strength-meter {
+            height: 4px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div class="register-container flex items-center justify-center p-6">
+        <div class="w-full max-w-md">
+            <!-- Logo Section -->
+            <div class="text-center mb-8">
+                <a href="index.html" class="inline-flex items-center space-x-3 mb-6">
+                    <div class="relative">
+                        <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
+                            <svg class="h-7 w-7 text-[#667eea]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        <div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-sm">
+                            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-3xl font-black text-white">Proma</span>
+                        <span class="text-xl font-bold text-yellow-300 ml-1">AI</span>
+                    </div>
+                </a>
+                <h1 class="text-2xl font-bold text-white mb-2">Create Account</h1>
+                <p class="text-blue-100">Join thousands of teams using Proma AI</p>
+            </div>
+
+            <!-- Register Form -->
+            <div class="register-card rounded-2xl shadow-2xl p-8 border border-white/20">
+                <form id="registerForm" class="space-y-6">
+                    <!-- Full Name Field -->
+                    <div>
+                        <label for="fullName" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user mr-2 text-gray-400"></i>Full Name
+                        </label>
+                        <input type="text" id="fullName" name="fullName" required
+                            class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#667eea] focus:border-transparent outline-none"
+                            placeholder="Enter your full name">
+                    </div>
+
+                    <!-- Email Field -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope mr-2 text-gray-400"></i>Email Address
+                        </label>
+                        <input type="email" id="email" name="email" required
+                            class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#667eea] focus:border-transparent outline-none"
+                            placeholder="Enter your email">
+                        <div id="emailError" class="text-red-500 text-sm mt-1 hidden"></div>
+                    </div>
+
+                    <!-- Company Field -->
+                    <div>
+                        <label for="company" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-building mr-2 text-gray-400"></i>Company (Optional)
+                        </label>
+                        <input type="text" id="company" name="company"
+                            class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#667eea] focus:border-transparent outline-none"
+                            placeholder="Enter your company name">
+                    </div>
+
+                    <!-- Password Field -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-lock mr-2 text-gray-400"></i>Password
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="password" name="password" required
+                                class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#667eea] focus:border-transparent outline-none pr-12"
+                                placeholder="Create a strong password">
+                            <button type="button" id="togglePassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <!-- Password Strength Meter -->
+                        <div class="mt-2">
+                            <div class="flex space-x-1">
+                                <div id="strength1" class="strength-meter flex-1 bg-gray-200"></div>
+                                <div id="strength2" class="strength-meter flex-1 bg-gray-200"></div>
+                                <div id="strength3" class="strength-meter flex-1 bg-gray-200"></div>
+                                <div id="strength4" class="strength-meter flex-1 bg-gray-200"></div>
+                            </div>
+                            <p id="strengthText" class="text-xs text-gray-500 mt-1">Password strength</p>
+                        </div>
+                    </div>
+
+                    <!-- Confirm Password Field -->
+                    <div>
+                        <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-lock mr-2 text-gray-400"></i>Confirm Password
+                        </label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required
+                            class="form-input w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#667eea] focus:border-transparent outline-none"
+                            placeholder="Confirm your password">
+                        <div id="passwordError" class="text-red-500 text-sm mt-1 hidden"></div>
+                    </div>
+
+                    <!-- Terms & Privacy -->
+                    <div class="flex items-start">
+                        <input type="checkbox" id="terms" name="terms" required class="mt-1 rounded border-gray-300 text-[#667eea] focus:ring-[#667eea]">
+                        <label for="terms" class="ml-2 text-sm text-gray-600">
+                            I agree to the <a href="#" class="text-[#667eea] hover:text-[#764ba2] font-medium">Terms of Service</a> 
+                            and <a href="#" class="text-[#667eea] hover:text-[#764ba2] font-medium">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <!-- Marketing Emails -->
+                    <div class="flex items-start">
+                        <input type="checkbox" id="marketing" name="marketing" class="mt-1 rounded border-gray-300 text-[#667eea] focus:ring-[#667eea]">
+                        <label for="marketing" class="ml-2 text-sm text-gray-600">
+                            Send me product updates and marketing emails
+                        </label>
+                    </div>
+
+                    <!-- Register Button -->
+                    <button type="submit" id="registerBtn"
+                        class="w-full main-gradient text-white font-semibold py-3 px-6 rounded-xl hover:opacity-90 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        Create Account
+                    </button>
+
+                    <!-- Divider -->
+                    <div class="relative my-6">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-300"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white text-gray-500">Or sign up with</span>
+                        </div>
+                    </div>
+
+                    <!-- Social Register -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            Google
+                        </button>
+                        <button type="button" class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            <svg class="w-5 h-5 mr-2" fill="#1877F2" viewBox="0 0 24 24">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                            Facebook
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Login Link -->
+                <div class="mt-8 text-center">
+                    <p class="text-gray-600">
+                        Already have an account? 
+                        <a href="login.html" class="text-[#667eea] hover:text-[#764ba2] font-semibold">Sign in here</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Back to Home -->
+            <div class="text-center mt-6">
+                <a href="index.html" class="text-blue-100 hover:text-white transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordField = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // Password strength checker
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strength = calculatePasswordStrength(password);
+            updateStrengthMeter(strength);
+        });
+
+        function calculatePasswordStrength(password) {
+            let strength = 0;
+            
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            return Math.min(strength, 4);
+        }
+
+        function updateStrengthMeter(strength) {
+            const colors = ['bg-gray-200', 'bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
+            const texts = ['Password strength', 'Very weak', 'Weak', 'Good', 'Strong'];
+            
+            for (let i = 1; i <= 4; i++) {
+                const element = document.getElementById(`strength${i}`);
+                element.className = `strength-meter flex-1 ${i <= strength ? colors[strength] : 'bg-gray-200'}`;
+            }
+            
+            document.getElementById('strengthText').textContent = texts[strength];
+            document.getElementById('strengthText').className = `text-xs mt-1 ${strength >= 3 ? 'text-green-600' : strength >= 2 ? 'text-yellow-600' : 'text-red-500'}`;
+        }
+
+        // Password confirmation validation
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            const errorDiv = document.getElementById('passwordError');
+            
+            if (confirmPassword && password !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.classList.remove('hidden');
+                this.classList.add('border-red-500');
+            } else {
+                errorDiv.classList.add('hidden');
+                this.classList.remove('border-red-500');
+            }
+        });
+
+        // Email validation
+        document.getElementById('email').addEventListener('blur', function() {
+            const email = this.value;
+            const errorDiv = document.getElementById('emailError');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (email && !emailRegex.test(email)) {
+                errorDiv.textContent = 'Please enter a valid email address';
+                errorDiv.classList.remove('hidden');
+                this.classList.add('border-red-500');
+            } else {
+                errorDiv.classList.add('hidden');
+                this.classList.remove('border-red-500');
+            }
+        });
+
+        // Register form submission
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            // Validate form
+            if (!validateForm(data)) {
+                return;
+            }
+            
+            // Show loading state
+            const registerBtn = document.getElementById('registerBtn');
+            const originalText = registerBtn.innerHTML;
+            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating Account...';
+            registerBtn.disabled = true;
+            
+            // Simulate registration process (replace with actual API call)
+            setTimeout(() => {
+                // Generate a simple user_id (in real app, this comes from server)
+                const user_id = 'user_' + Date.now();
+                
+                // Store user session
+                localStorage.setItem('user_id', user_id);
+                localStorage.setItem('user_email', data.email);
+                localStorage.setItem('user_name', data.fullName);
+                localStorage.setItem('user_company', data.company || '');
+                localStorage.setItem('isLoggedIn', 'true');
+                
+                // Show success message
+                alert('Account created successfully! Welcome to Proma AI!');
+                
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
+            }, 2000);
+        });
+
+        function validateForm(data) {
+            let isValid = true;
+            
+            // Check required fields
+            if (!data.fullName || !data.email || !data.password || !data.confirmPassword) {
+                alert('Please fill in all required fields');
+                isValid = false;
+            }
+            
+            // Check password match
+            if (data.password !== data.confirmPassword) {
+                alert('Passwords do not match');
+                isValid = false;
+            }
+            
+            // Check password strength
+            if (calculatePasswordStrength(data.password) < 2) {
+                alert('Please choose a stronger password');
+                isValid = false;
+            }
+            
+            // Check terms agreement
+            if (!data.terms) {
+                alert('Please agree to the Terms of Service and Privacy Policy');
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+
+        // Check if user is already logged in
+        if (localStorage.getItem('isLoggedIn') === 'true') {
+            window.location.href = 'dashboard.html';
+        }
+
+        // Check for URL parameters (errors)
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+
+        if (error) {
+            let errorMessage = 'An error occurred. Please try again.';
+            switch (error) {
+                case 'register_failed':
+                    errorMessage = 'Registration failed. Please check your information and try again.';
+                    break;
+                case 'network_error':
+                    errorMessage = 'Network error. Please check your connection and try again.';
+                    break;
+            }
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i>${errorMessage}`;
+            
+            const form = document.getElementById('registerForm');
+            form.parentNode.insertBefore(errorDiv, form);
+        }
+    </script>
+</body>
+
+</html>
