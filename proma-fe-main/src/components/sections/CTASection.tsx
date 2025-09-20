@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 
 interface CTASectionProps {
@@ -12,9 +13,11 @@ export const CTASection: React.FC<CTASectionProps> = ({ variant = 'simple' }) =>
         <div className="container mx-auto px-6 text-center max-w-4xl">
           <h2 className="text-4xl font-bold text-gray-800 mb-4">Ready to experience AI power?</h2>
           <p className="text-lg text-gray-600 mb-8">Join thousands of businesses that trust AI Project Manager for their success</p>
-          <Button variant="primary" size="lg" className="shadow-lg hover:shadow-xl">
-            Start 14-day free trial
-          </Button>
+          <Link href="/login">
+            <Button variant="primary" size="lg" className="shadow-lg hover:shadow-xl">
+              Start 14-day free trial
+            </Button>
+          </Link>
         </div>
       </section>
     );
@@ -86,9 +89,11 @@ export const CTASection: React.FC<CTASectionProps> = ({ variant = 'simple' }) =>
             </div>
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
-              <Button variant="secondary" size="lg" className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 shadow-lg hover:shadow-xl">
-                Start Free Trial Now
-              </Button>
+              <Link href="/login">
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 shadow-lg hover:shadow-xl">
+                  Start Free Trial Now
+                </Button>
+              </Link>
               <Button variant="outline" size="lg" className="w-full sm:w-auto bg-transparent border-2 border-white text-white hover:bg-white hover:text-purple-600">
                 Schedule Personal Demo
               </Button>
@@ -126,9 +131,11 @@ export const CTASection: React.FC<CTASectionProps> = ({ variant = 'simple' }) =>
         <section id="cta" className="main-gradient text-white py-20 fade-in-section">
           <div className="container mx-auto px-6 text-center max-w-3xl">
             <h2 className="text-4xl font-bold mb-4">Ready to Supercharge Your Projects with AI?</h2>
-            <Button variant="secondary" size="lg" className="bg-white text-purple-600 font-bold mt-8">
-              Start Free Trial
-            </Button>
+            <Link href="/login">
+              <Button variant="secondary" size="lg" className="bg-white text-purple-600 font-bold mt-8">
+                Start Free Trial
+              </Button>
+            </Link>
             <p className="mt-4 text-gray-200">No credit card required – start now.</p>
           </div>
         </section>

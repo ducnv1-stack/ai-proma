@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { TestimonialItem } from '@/types';
 
@@ -89,9 +90,11 @@ export const TestimonialsSection: React.FC = () => {
             <i className="fas fa-star text-yellow-400 text-sm"></i>
             <span className="text-sm font-medium text-purple-700">Average rating 4.9/5 from 2,500+ customers</span>
           </div>
-          <Button variant="primary" size="lg" className="w-full shadow-lg hover:shadow-xl">
-            Join our satisfied customer community
-          </Button>
+          <Link href="/login">
+            <Button variant="primary" size="lg" className="w-full shadow-lg hover:shadow-xl">
+              Join our satisfied customer community
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

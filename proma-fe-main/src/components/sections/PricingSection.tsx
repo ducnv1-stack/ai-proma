@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { PricingPlan } from '@/types';
 
 export const PricingSection: React.FC = () => {
@@ -10,7 +11,8 @@ export const PricingSection: React.FC = () => {
       features: ['3 Projects', '10 Team Members', 'Basic Analytics'],
       buttonText: 'Get Started',
       buttonClass: 'bg-white border-2 border-gray-300 text-gray-800 hover:bg-gray-100',
-      cardClass: 'bg-gray-50 p-6 rounded-xl border-2 border-gray-200 h-full'
+      cardClass: 'bg-gray-50 p-6 rounded-xl border-2 border-gray-200 h-full',
+      href: '/login'
     },
     {
       name: 'Pro',
@@ -21,7 +23,8 @@ export const PricingSection: React.FC = () => {
       buttonText: 'Choose Pro',
       buttonClass: 'bg-white text-purple-600',
       cardClass: 'main-gradient text-white p-6 rounded-2xl shadow-2xl relative h-full transform lg:scale-105',
-      popular: true
+      popular: true,
+      href: '/login'
     },
     {
       name: 'Enterprise',
@@ -30,7 +33,8 @@ export const PricingSection: React.FC = () => {
       features: ['Everything in Pro', 'Custom AI Models', 'Dedicated Account Manager'],
       buttonText: 'Contact Sales',
       buttonClass: 'bg-white border-2 border-gray-300 text-gray-800 hover:bg-gray-100',
-      cardClass: 'bg-gray-50 p-6 rounded-xl border-2 border-gray-200 h-full'
+      cardClass: 'bg-gray-50 p-6 rounded-xl border-2 border-gray-200 h-full',
+      href: '/contact'
     }
   ];
 
@@ -67,9 +71,17 @@ export const PricingSection: React.FC = () => {
                   </li>
                 ))}
               </ul>
-              <button className={`w-full text-center font-semibold py-2.5 px-5 rounded-full text-sm transition-all duration-300 ${plan.buttonClass}`}>
-                {plan.buttonText}
-              </button>
+              {plan.href ? (
+                <Link href={plan.href} className="block">
+                  <button className={`w-full text-center font-semibold py-2.5 px-5 rounded-full text-sm transition-all duration-300 ${plan.buttonClass}`}>
+                    {plan.buttonText}
+                  </button>
+                </Link>
+              ) : (
+                <button className={`w-full text-center font-semibold py-2.5 px-5 rounded-full text-sm transition-all duration-300 ${plan.buttonClass}`}>
+                  {plan.buttonText}
+                </button>
+              )}
             </div>
           ))}
         </div>
