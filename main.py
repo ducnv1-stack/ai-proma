@@ -5,7 +5,8 @@ from src.api.routers.agents import agents_router
 from src.api.routers.session import router as session_router
 from src.api.routers.auth import router as auth_router
 from src.api.routers.epics import router as epics_router
-from src.database.postgres import database
+from src.api.routers.members import router as members_router
+# Removed database import since we're using direct connections
 
 from contextlib import asynccontextmanager
 from configs import get_settings, get_server_settings
@@ -17,13 +18,11 @@ server_settings = get_server_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"Starting {server_settings.app_name}...")
-    await database.connect()
-    print("Database connected")
+    print("Using direct database connections (no pool)")
     yield
     
     print(f"Shutting down {server_settings.app_name}...")
-    await database.disconnect()
-    print("Database disconnected")
+    print("No database pool to disconnect")
 
 app = FastAPI(
     title=server_settings.app_name,
@@ -42,6 +41,7 @@ try:
     app.include_router(agents_router, tags=['Agents'])
     app.include_router(session_router, tags=['Session'])
     app.include_router(epics_router, tags=['Epic Management'])
+    app.include_router(members_router, tags=['Members'])
 except Exception as e:
     print(e)
 

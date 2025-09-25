@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from src.api.authentication.dependencies import get_current_active_user
-from src.api.schemas.epics import CreateEpicRequest, CreateEpicResponse, ListEpicsResponse
+from src.api.authentication.dependencies import get_current_active_user, get_epic_context
+from src.api.schemas.epics import CreateEpicRequest, CreateEpicResponse, CreateTaskRequest, CreateTaskResponse, ListEpicsResponse
 from src.api.services.epic_service import epic_service
 from src.api.logging.logger import get_logger
 import logging
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/v1/epics", tags=["Epic Management"])
 @router.post("/create", response_model=CreateEpicResponse)
 async def create_epic(
     request: CreateEpicRequest,
-    current_user: dict = Depends(get_current_active_user)
+    epic_context: dict = Depends(get_epic_context)
 ):
     """
     Tạo epic mới trong hệ thống
@@ -25,50 +25,22 @@ async def create_epic(
     - **start_date**: Ngày bắt đầu (tùy chọn, mặc định là hôm nay)
     - **due_date**: Ngày kết thúc (tùy chọn, mặc định là start_date + 7 ngày)
     
-    JWT token sẽ tự động cung cấp: workspace_id, user_id, agent_id, username
+    JWT token chỉ cần chứa: workspace_id, user_id, user_name
     """
     try:
-        # Lấy thông tin từ JWT token đã được parse
-        token_data = current_user.get("token_data", {})
-        user_data = current_user.get("user", {})
+        # Lấy thông tin từ JWT context (chỉ workspace_id, user_id, user_name)
+        workspace_id = epic_context["workspace_id"]
+        user_id = epic_context["user_id"]
+        user_name = epic_context["user_name"]
         
-        # Extract thông tin cần thiết từ JWT
-        user_id = token_data.get("user_id") or user_data.get("id")
-        username = token_data.get("sub") or user_data.get("username")
-        workspace_id = token_data.get("workspace_id")
-        agent_id = token_data.get("agent_id")
+        logger.info(f"Creating epic '{request.epic_name}' for user {user_name} ({user_id}) in workspace {workspace_id}")
         
-        # Validation các thông tin bắt buộc từ JWT
-        if not user_id:
-            logger.error("User ID not found in JWT token")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User ID not found in token"
-            )
-        
-        if not workspace_id:
-            logger.error("Workspace ID not found in JWT token")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Workspace ID not found in token"
-            )
-        
-        if not agent_id:
-            logger.error("Agent ID not found in JWT token")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Agent ID not found in token"
-            )
-        
-        logger.info(f"Creating epic '{request.epic_name}' for user {user_id} in workspace {workspace_id}")
-        
-        # Gọi service để tạo epic
-        epic = await epic_service.create_epic(
+        # Gọi service để tạo epic với thông tin đơn giản
+        epic = await epic_service.create_epic_simple(
             request=request,
-            user_id=user_id,
-            username=username or "Unknown User",
             workspace_id=workspace_id,
-            agent_id=agent_id
+            user_id=user_id,
+            user_name=user_name
         )
         
         logger.info(f"Epic created successfully: {epic.epic_id}")
@@ -89,49 +61,122 @@ async def create_epic(
             detail=f"Failed to create epic: {str(e)}"
         )
 
-@router.get("/list", response_model=ListEpicsResponse)
-async def list_epics(
-    current_user: dict = Depends(get_current_active_user)
+@router.post("/create-task", response_model=CreateTaskResponse)
+async def create_task_unified(
+    request: CreateTaskRequest,
+    epic_context: dict = Depends(get_epic_context)
 ):
     """
-    Lấy danh sách epics của user trong workspace hiện tại
-    Lấy tất cả epics có type = "Epic" (không phân biệt hoa thường)
+    API thống nhất để tạo Epic, Task, hoặc Sub_task
+    
+    **Type Epic:**
+    - epic_name: Tên epic (bắt buộc)
+    - description, category, priority, status, assignee_name, start_date, due_date (tùy chọn)
+    
+    **Type Task:**
+    - epic_id: ID của epic (bắt buộc)
+    - epic_name: Tên epic (bắt buộc) 
+    - task_name: Tên task (bắt buộc)
+    - description, category, priority, status, assignee_name, start_date, due_date (tùy chọn)
+    
+    **Type Sub_task:**
+    - epic_id: ID của epic (bắt buộc)
+    - epic_name: Tên epic (bắt buộc)
+    - parent_id: ID của task cha (bắt buộc)
+    - sub_task_name: Tên sub task (bắt buộc)
+    - description, category, priority, status, assignee_name, start_date, due_date (tùy chọn)
+    
+    JWT token chỉ cần chứa: workspace_id, user_id, user_name
     """
     try:
-        token_data = current_user.get("token_data", {})
-        user_data = current_user.get("user", {})
+        # Lấy thông tin từ JWT context
+        workspace_id = epic_context["workspace_id"]
+        user_id = epic_context["user_id"]
+        user_name = epic_context["user_name"]
         
-        # Extract thông tin từ JWT
-        workspace_id = token_data.get("workspace_id")
-        user_id = token_data.get("user_id") or user_data.get("id")
+        logger.info(f"Creating {request.type.value} for user {user_name} ({user_id}) in workspace {workspace_id}")
         
-        if not workspace_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Workspace ID not found in token"
-            )
+        # Gọi service để tạo task thống nhất
+        task = await epic_service.create_task_unified(
+            request=request,
+            workspace_id=workspace_id,
+            user_id=user_id,
+            user_name=user_name
+        )
         
-        logger.info(f"Listing epics for workspace: {workspace_id}, user: {user_id}")
+        logger.info(f"{request.type.value} created successfully: {task.epic_id}")
         
-        # Gọi service để lấy danh sách epics
-        # Không filter theo user_id để lấy tất cả epics trong workspace
-        epics = await epic_service.list_epics(workspace_id=workspace_id)
-        
-        logger.info(f"Retrieved {len(epics)} epics successfully")
-        
-        return {
-            "status": "success",
-            "message": f"Found {len(epics)} epics in workspace",
-            "total_count": len(epics),
-            "workspace_id": workspace_id,
-            "epics": [epic.dict() for epic in epics]
-        }
+        return CreateTaskResponse(
+            status="success",
+            message=f"{request.type.value} created successfully",
+            task=task
+        )
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error listing epics: {str(e)}")
+        logger.error(f"Error creating {request.type.value}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list epics: {str(e)}"
+            detail=f"Failed to create {request.type.value}: {str(e)}"
+        )
+
+@router.get("/list", response_model=ListEpicsResponse)
+async def list_epics(
+    epic_context: dict = Depends(get_epic_context),
+    type: str = None
+):
+    """
+    Lấy danh sách epics/tasks/subtasks theo workspace_id, user_id từ JWT token
+    
+    Query Parameters:
+    - type: Epic, Task, Sub_task, hoặc All (mặc định: Epic)
+    """
+    try:
+        # Lấy thông tin từ JWT context
+        workspace_id = epic_context["workspace_id"]
+        user_id = epic_context["user_id"]
+        user_name = epic_context["user_name"]
+        
+        # Xử lý type parameter
+        if type is None:
+            type = "Epic"  # Mặc định là Epic để backward compatible
+        
+        # Validate type
+        valid_types = ["Epic", "Task", "Sub_task", "All"]
+        if type not in valid_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid type. Must be one of: {', '.join(valid_types)}"
+            )
+        
+        logger.info(f"Listing {type} for user {user_name} ({user_id}) in workspace {workspace_id}")
+        
+        # Gọi service với type filter
+        items = await epic_service.list_tasks_by_type(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            type_filter=type
+        )
+        
+        logger.info(f"Service returned {len(items)} {type.lower()}s")
+        
+        # Tạo message phù hợp
+        type_display = type.lower() + "s" if type != "All" else "items"
+        
+        return ListEpicsResponse(
+            status="success",
+            message=f"Found {len(items)} {type_display} for user {user_name} in workspace {workspace_id}",
+            total_count=len(items),
+            workspace_id=workspace_id,
+            epics=items  # Vẫn dùng field "epics" để backward compatible
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing {type}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list {type}: {str(e)}"
         )

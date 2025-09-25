@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime, timedelta
 import jwt
 from typing import Optional
 import os
+import hashlib
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -12,78 +13,38 @@ load_dotenv()
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
 # Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-super-secret-jwt-key-here")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "ai-proma-secret-key-2024")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-
-# Pydantic models
-class TokenRequest(BaseModel):
-    username: str
-    email: Optional[str] = None
-    role: str = "user"
-    workspace_id: str = "default_workspace"
-    agent_id: str = "facebook_marketing_agent"
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "480"))  # 8 hours
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
-    user_info: dict
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-    workspace_id: Optional[str] = "default_workspace"
-    agent_id: Optional[str] = "facebook_marketing_agent"
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Tạo JWT access token"""
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    claims: dict
 
 @router.post("/token", response_model=TokenResponse)
-async def create_token(request: TokenRequest):
+async def create_token_from_any_json(request: dict):
     """
-    Tạo JWT token cho testing và development
-    Không cần password - chỉ dành cho development
+    Tạo JWT token từ bất kỳ JSON body nào
+    Body JSON sẽ được chuyển trực tiếp thành JWT payload
     """
     try:
-        # Tạo payload cho JWT
-        token_data = {
-            "sub": request.username,
-            "user_id": f"user_{hash(request.username) % 1000000}",  # Generate simple user_id
-            "email": request.email or f"{request.username}@example.com",
-            "role": request.role,
-            "workspace_id": request.workspace_id,
-            "agent_id": request.agent_id
-        }
+        # Thêm thông tin expiration vào payload
+        payload = request.copy()
+        payload.update({
+            "iat": datetime.utcnow(),
+            "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        })
         
-        # Tạo token
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data=token_data, 
-            expires_delta=access_token_expires
-        )
+        # Tạo JWT từ payload
+        access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
         
         return TokenResponse(
             access_token=access_token,
             token_type="bearer",
-            expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
-            user_info={
-                "username": request.username,
-                "email": token_data["email"],
-                "role": request.role,
-                "workspace_id": request.workspace_id,
-                "agent_id": request.agent_id,
-                "user_id": token_data["user_id"]
-            }
+            expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            claims=request  # Trả về body gốc làm claims
         )
         
     except Exception as e:
@@ -92,40 +53,10 @@ async def create_token(request: TokenRequest):
             detail=f"Failed to create token: {str(e)}"
         )
 
-@router.post("/login", response_model=TokenResponse)
-async def login_for_access_token(request: LoginRequest):
+@router.post("/decode", response_model=dict)
+async def decode_token(token: str):
     """
-    Đăng nhập đơn giản để lấy token
-    Chỉ dành cho development - không có database validation
-    """
-    # Simple validation - accept any username/password for development
-    if not request.username or len(request.username) < 3:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username must be at least 3 characters"
-        )
-    
-    if not request.password or len(request.password) < 3:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 3 characters"
-        )
-    
-    # Create token (same as /token endpoint)
-    token_request = TokenRequest(
-        username=request.username,
-        email=f"{request.username}@example.com",
-        role="user",
-        workspace_id=request.workspace_id,
-        agent_id=request.agent_id
-    )
-    
-    return await create_token(token_request)
-
-@router.get("/verify")
-async def verify_token(token: str):
-    """
-    Verify JWT token
+    Decode JWT token để xem thông tin bên trong
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

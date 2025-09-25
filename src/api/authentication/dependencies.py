@@ -4,44 +4,42 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 import jwt
 import logging
-
-from configs import get_security_settings
+import os
 
 logger = logging.getLogger(__name__)
 
-security_settings = get_security_settings()
-
-SECRET_KEY = security_settings.jwt_secret_key or "your-secret-key-change-this-in-production"
-ALGORITHM = security_settings.jwt_algorithm
-ACCESS_TOKEN_EXPIRE_MINUTES = security_settings.jwt_access_token_expire_minutes
+# Sử dụng cùng secret key với auth router
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "ai-proma-secret-key-2024")
+ALGORITHM = "HS256"
 
 security = HTTPBearer()
 
-def decode_token_jwt(token: str) -> dict:
-    """Verify and decode a JWT token.
+def decode_simple_jwt(token: str) -> dict:
+    """Decode JWT token đơn giản chỉ lấy thông tin cần thiết
     
-    When using JWT tokens without database authentication, the token should contain
-    all necessary user information including:
-    - sub: username or user identifier
-    - user_id: the user's unique ID
-    - email: user's email
-    - role: user's role (optional, default 'user')
-    - session_id: current session ID
-    - workspace_id: current workspace ID
-    - agent_id: current agent ID
+    JWT chứa:
+    - sub: username
+    - user_id: user ID
+    - agent_id: agent ID  
+    - workspace_id: workspace ID
+    - role: user role
     
     Returns:
         dict: The decoded JWT payload
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        
+        # Kiểm tra các field bắt buộc
+        required_fields = ["sub", "user_id", "agent_id", "workspace_id"]
+        for field in required_fields:
+            if field not in payload:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=f"Missing required field: {field}",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -52,38 +50,87 @@ def decode_token_jwt(token: str) -> dict:
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Get the current authenticated user from JWT token.
-    
-    This function decodes the JWT token and extracts all user information.
-    No database lookup is performed - all user data comes from the token.
-    """
+    """Decode JWT token và trả về thông tin user đơn giản"""
     token = credentials.credentials
     
-    # Decode JWT token
-    token_data = decode_token_jwt(token)
+    # Decode JWT token đơn giản
+    token_data = decode_simple_jwt(token)
     
-    # Extract basic user information from token
+    # Extract thông tin cơ bản từ token
     user = {
         "id": token_data.get("user_id"),
-        "username": token_data.get("sub"),
-        "email": token_data.get("email"),
+        "username": token_data.get("username") or token_data.get("sub"),
         "role": token_data.get("role", "user"),
         "is_active": True,
         "is_admin": token_data.get("role") == "admin"
     }
     
-    # Log successful authentication
+    # Log authentication
     logger.info(f"User authenticated: {user['username']}")
     
     return {
         "user": user,
         "token_data": token_data
     }
+
+async def get_epic_context(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Decode JWT và chỉ lấy thông tin cần thiết cho epic: workspace_id, user_id, user_name"""
+    token = credentials.credentials
+    
+    try:
+        # Decode JWT token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # Chỉ lấy thông tin cần thiết, bỏ qua thông tin thừa
+        epic_context = {
+            "workspace_id": payload.get("workspace_id"),
+            "user_id": payload.get("user_id"), 
+            "user_name": payload.get("username") or payload.get("sub")
+        }
+        
+        # Validation các field bắt buộc
+        if not epic_context["workspace_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="workspace_id not found in token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        if not epic_context["user_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="user_id not found in token", 
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        if not epic_context["user_name"]:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="user_name not found in token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        logger.info(f"Epic context extracted: workspace_id={epic_context['workspace_id']}, user_id={epic_context['user_id']}, user_name={epic_context['user_name']}")
+        
+        return epic_context
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 async def get_current_active_user(current_user: dict = Depends(get_current_user)):
     """Get current active user.
