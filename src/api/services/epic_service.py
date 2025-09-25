@@ -2,8 +2,9 @@ from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 import uuid
 import pytz
+from fastapi import HTTPException
 from src.database.postgres import get_db_connection
-from src.api.schemas.epics import CreateEpicRequest, CreateTaskRequest, EpicResponse, PriorityEnum, StatusEnum, TypeEnum
+from src.api.schemas.epics import CreateEpicRequest, CreateTaskRequest, DeleteTaskResponse, GetTaskResponse, UpdateTaskRequest, UpdateTaskResponse, EpicResponse, PriorityEnum, StatusEnum, TypeEnum
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,10 +28,21 @@ class EpicService:
         random_string = str(uuid.uuid4()).replace('-', '')
         return f"subtask-{random_string}"
     
+    def detect_type_from_id(self, item_id: str) -> str:
+        """Detect type từ ID prefix"""
+        if item_id.startswith("epic-"):
+            return "Epic"
+        elif item_id.startswith("task-"):
+            return "Task"
+        elif item_id.startswith("subtask-"):
+            return "Sub_task"
+        else:
+            raise ValueError(f"Invalid ID format: {item_id}. Must start with epic-, task-, or subtask-")
+    
     def get_vietnam_datetime(self) -> str:
-        """Lấy thởi gian hiện tại theo múi giờ UTC+7"""
+        """Lấy ngày hiện tại theo múi giờ UTC+7"""
         now = datetime.now(self.vietnam_tz)
-        return now.strftime('%d/%m/%Y %H:%M:%S')
+        return now.strftime('%d/%m/%Y')
     
     def calculate_due_date(self, start_date_str: str) -> str:
         """Tính due_date = start_date + 7 ngày"""
@@ -38,24 +50,24 @@ class EpicService:
             # Debug log để xem input
             logger.info(f"Parsing start_date: '{start_date_str}' (type: {type(start_date_str)})")
             
-            # Parse với format dd/MM/yyyy HH:mm:ss
-            start_date = datetime.strptime(start_date_str, '%d/%m/%Y %H:%M:%S')
+            # Parse với format dd/MM/yyyy
+            start_date = datetime.strptime(start_date_str, '%d/%m/%Y')
             due_date = start_date + timedelta(days=7)
-            result = due_date.strftime('%d/%m/%Y %H:%M:%S')
+            result = due_date.strftime('%d/%m/%Y')
             
             logger.info(f"Calculated due_date: '{result}'")
             return result
             
         except ValueError as e:
             logger.error(f"Date parsing error: {e}, input: '{start_date_str}'")
-            # Fallback: return current time + 7 days
+            # Fallback: return current date + 7 days
             fallback_date = datetime.now(self.vietnam_tz) + timedelta(days=7)
-            return fallback_date.strftime('%d/%m/%Y %H:%M:%S')
+            return fallback_date.strftime('%d/%m/%Y')
         except Exception as e:
             logger.error(f"Unexpected error in calculate_due_date: {e}")
-            # Fallback: return current time + 7 days  
+            # Fallback: return current date + 7 days  
             fallback_date = datetime.now(self.vietnam_tz) + timedelta(days=7)
-            return fallback_date.strftime('%d/%m/%Y %H:%M:%S')
+            return fallback_date.strftime('%d/%m/%Y')
     
     async def get_assignee_info(self, assignee_name: str) -> Optional[Dict[str, str]]:
         """Lấy thông tin assignee từ bảng team_info"""
@@ -935,6 +947,542 @@ class EpicService:
         except Exception as e:
             logger.error(f"Error creating {request.type.value}: {e}")
             raise Exception(f"Failed to create {request.type.value}: {str(e)}")
+        finally:
+            if conn:
+                await conn.close()
+
+    async def delete_task_cascade(
+        self, 
+        item_id: str,
+        workspace_id: str, 
+        user_id: str,
+        dry_run: bool = False
+    ) -> DeleteTaskResponse:
+        """
+        Xóa Epic/Task/Sub_task với cascade logic
+        
+        Args:
+            item_id: ID của item cần xóa
+            workspace_id: ID workspace
+            user_id: ID user
+            dry_run: True = preview only, False = execute delete
+        """
+        conn = None
+        try:
+            # 1. Detect type từ ID prefix
+            item_type = self.detect_type_from_id(item_id)
+            logger.info(f"Detected type: {item_type} for item_id: {item_id}")
+            
+            conn = await get_db_connection()
+            
+            # 2. Build cascade query dựa trên type
+            if item_type == "Epic":
+                # Xóa Epic + tất cả Task + tất cả Sub_task thuộc Epic
+                if dry_run:
+                    query = """
+                        SELECT epic_id, task_id, sub_task_id, type, epic_name, task_name, sub_task_name
+                        FROM ai_proma.task_info 
+                        WHERE epic_id = $1 AND workspace_id = $2 AND user_id = $3
+                        ORDER BY type DESC
+                    """
+                else:
+                    query = """
+                        DELETE FROM ai_proma.task_info 
+                        WHERE epic_id = $1 AND workspace_id = $2 AND user_id = $3
+                        RETURNING epic_id, task_id, sub_task_id, type, epic_name, task_name, sub_task_name
+                    """
+                query_params = [item_id, workspace_id, user_id]
+                
+            elif item_type == "Task":
+                # Xóa Task + tất cả Sub_task thuộc Task
+                if dry_run:
+                    query = """
+                        SELECT epic_id, task_id, sub_task_id, type, epic_name, task_name, sub_task_name
+                        FROM ai_proma.task_info 
+                        WHERE (task_id = $1 OR (sub_task_id IS NOT NULL AND task_id = $1))
+                        AND workspace_id = $2 AND user_id = $3
+                        ORDER BY type DESC
+                    """
+                else:
+                    query = """
+                        DELETE FROM ai_proma.task_info 
+                        WHERE (task_id = $1 OR (sub_task_id IS NOT NULL AND task_id = $1))
+                        AND workspace_id = $2 AND user_id = $3
+                        RETURNING epic_id, task_id, sub_task_id, type, epic_name, task_name, sub_task_name
+                    """
+                query_params = [item_id, workspace_id, user_id]
+                
+            else:  # Sub_task
+                # Chỉ xóa Sub_task
+                if dry_run:
+                    query = """
+                        SELECT epic_id, task_id, sub_task_id, type, epic_name, task_name, sub_task_name
+                        FROM ai_proma.task_info 
+                        WHERE sub_task_id = $1 AND workspace_id = $2 AND user_id = $3
+                    """
+                else:
+                    query = """
+                        DELETE FROM ai_proma.task_info 
+                        WHERE sub_task_id = $1 AND workspace_id = $2 AND user_id = $3
+                        RETURNING epic_id, task_id, sub_task_id, type, epic_name, task_name, sub_task_name
+                    """
+                query_params = [item_id, workspace_id, user_id]
+            
+            # 3. Execute query
+            logger.info(f"Executing {'preview' if dry_run else 'delete'} query for {item_type}")
+            
+            if dry_run:
+                results = await conn.fetch(query, *query_params)
+            else:
+                # Sử dụng transaction cho delete
+                async with conn.transaction():
+                    results = await conn.fetch(query, *query_params)
+            
+            logger.info(f"Query returned {len(results)} affected rows")
+            
+            # 4. Process results
+            deleted_count = {"epic": 0, "task": 0, "subtask": 0}
+            affected_ids = []
+            
+            for row in results:
+                row_type = row["type"]
+                
+                if row_type == "Epic":
+                    deleted_count["epic"] += 1
+                    affected_ids.append(row["epic_id"])
+                elif row_type == "Task":
+                    deleted_count["task"] += 1
+                    affected_ids.append(row["task_id"])
+                elif row_type == "Sub_task":
+                    deleted_count["subtask"] += 1
+                    affected_ids.append(row["sub_task_id"])
+            
+            # 5. Validate có items để xóa
+            if not results:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Item {item_id} not found or not owned by user"
+                )
+            
+            # 6. Build response message
+            total_items = sum(deleted_count.values())
+            action = "Would delete" if dry_run else "Deleted"
+            
+            parts = []
+            if deleted_count["epic"] > 0:
+                parts.append(f"{deleted_count['epic']} epic(s)")
+            if deleted_count["task"] > 0:
+                parts.append(f"{deleted_count['task']} task(s)")
+            if deleted_count["subtask"] > 0:
+                parts.append(f"{deleted_count['subtask']} subtask(s)")
+            
+            message = f"{action} {', '.join(parts)} (total: {total_items} items)"
+            
+            logger.info(f"Delete cascade completed: {message}")
+            
+            return DeleteTaskResponse(
+                status="success",
+                message=message,
+                deleted_count=deleted_count,
+                affected_ids=affected_ids,
+                dry_run=dry_run
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in delete_task_cascade: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise Exception(f"Failed to delete task cascade: {str(e)}")
+        finally:
+            if conn:
+                await conn.close()
+
+    async def get_task_by_id_cascade(
+        self, 
+        item_id: str,
+        workspace_id: str, 
+        user_id: str
+    ) -> GetTaskResponse:
+        """
+        Lấy Epic/Task/Sub_task theo ID với cascade logic
+        
+        Args:
+            item_id: ID của item cần lấy
+            workspace_id: ID workspace
+            user_id: ID user
+        
+        Returns:
+            GetTaskResponse với item chính + related items
+        """
+        conn = None
+        try:
+            # 1. Detect type từ ID prefix
+            item_type = self.detect_type_from_id(item_id)
+            logger.info(f"Detected type: {item_type} for item_id: {item_id}")
+            
+            conn = await get_db_connection()
+            
+            # 2. Build cascade query dựa trên type
+            if item_type == "Epic":
+                # Get Epic + tất cả Task + tất cả Sub_task thuộc Epic
+                query = """
+                    SELECT 
+                        TRIM(workspace_id) as workspace_id, TRIM(user_id) as user_id, 
+                        TRIM(epic_id) as epic_id, TRIM(epic_name) as epic_name,
+                        TRIM(task_id) as task_id, TRIM(task_name) as task_name, 
+                        TRIM(sub_task_id) as sub_task_id, TRIM(sub_task_name) as sub_task_name,
+                        TRIM(description) as description, TRIM(category) as category, 
+                        TRIM(priority) as priority, TRIM(status) as status,
+                        TRIM(assignee_id) as assignee_id, TRIM(assignee_name) as assignee_name, 
+                        TRIM(start_date) as start_date, TRIM(due_date) as due_date,
+                        TRIM(deadline_extend) as deadline_extend, TRIM(type) as type, 
+                        TRIM(create_at) as create_at, TRIM(update_at) as update_at
+                    FROM ai_proma.task_info 
+                    WHERE epic_id = $1 AND workspace_id = $2 AND user_id = $3
+                    ORDER BY 
+                        CASE type 
+                            WHEN 'Epic' THEN 1 
+                            WHEN 'Task' THEN 2 
+                            WHEN 'Sub_task' THEN 3 
+                        END, create_at ASC
+                """
+                query_params = [item_id, workspace_id, user_id]
+                
+            elif item_type == "Task":
+                # Get Task + tất cả Sub_task thuộc Task
+                query = """
+                    SELECT 
+                        TRIM(workspace_id) as workspace_id, TRIM(user_id) as user_id, 
+                        TRIM(epic_id) as epic_id, TRIM(epic_name) as epic_name,
+                        TRIM(task_id) as task_id, TRIM(task_name) as task_name, 
+                        TRIM(sub_task_id) as sub_task_id, TRIM(sub_task_name) as sub_task_name,
+                        TRIM(description) as description, TRIM(category) as category, 
+                        TRIM(priority) as priority, TRIM(status) as status,
+                        TRIM(assignee_id) as assignee_id, TRIM(assignee_name) as assignee_name, 
+                        TRIM(start_date) as start_date, TRIM(due_date) as due_date,
+                        TRIM(deadline_extend) as deadline_extend, TRIM(type) as type, 
+                        TRIM(create_at) as create_at, TRIM(update_at) as update_at
+                    FROM ai_proma.task_info 
+                    WHERE (task_id = $1 OR (sub_task_id IS NOT NULL AND task_id = $1))
+                    AND workspace_id = $2 AND user_id = $3
+                    ORDER BY 
+                        CASE type 
+                            WHEN 'Task' THEN 1 
+                            WHEN 'Sub_task' THEN 2 
+                        END, create_at ASC
+                """
+                query_params = [item_id, workspace_id, user_id]
+                
+            else:  # Sub_task
+                # Chỉ get Sub_task
+                query = """
+                    SELECT 
+                        TRIM(workspace_id) as workspace_id, TRIM(user_id) as user_id, 
+                        TRIM(epic_id) as epic_id, TRIM(epic_name) as epic_name,
+                        TRIM(task_id) as task_id, TRIM(task_name) as task_name, 
+                        TRIM(sub_task_id) as sub_task_id, TRIM(sub_task_name) as sub_task_name,
+                        TRIM(description) as description, TRIM(category) as category, 
+                        TRIM(priority) as priority, TRIM(status) as status,
+                        TRIM(assignee_id) as assignee_id, TRIM(assignee_name) as assignee_name, 
+                        TRIM(start_date) as start_date, TRIM(due_date) as due_date,
+                        TRIM(deadline_extend) as deadline_extend, TRIM(type) as type, 
+                        TRIM(create_at) as create_at, TRIM(update_at) as update_at
+                    FROM ai_proma.task_info 
+                    WHERE sub_task_id = $1 AND workspace_id = $2 AND user_id = $3
+                """
+                query_params = [item_id, workspace_id, user_id]
+            
+            # 3. Execute query
+            logger.info(f"Executing get cascade query for {item_type}")
+            results = await conn.fetch(query, *query_params)
+            logger.info(f"Query returned {len(results)} rows")
+            
+            # 4. Validate có items
+            if not results:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Item {item_id} not found or not owned by user"
+                )
+            
+            # 5. Convert results thành EpicResponse objects
+            items = []
+            for row in results:
+                try:
+                    item = EpicResponse(
+                        workspace_id=row["workspace_id"] or workspace_id,
+                        user_id=row["user_id"] or user_id,
+                        epic_id=row["epic_id"] or "unknown",
+                        epic_name=row["epic_name"] or "Untitled Epic",
+                        task_id=row["task_id"],
+                        task_name=row["task_name"],
+                        sub_task_id=row["sub_task_id"],
+                        sub_task_name=row["sub_task_name"],
+                        description=row["description"],
+                        category=row["category"],
+                        priority=PriorityEnum(row["priority"]) if row["priority"] else PriorityEnum.MEDIUM,
+                        status=StatusEnum(row["status"]) if row["status"] else StatusEnum.TODO,
+                        assignee_id=row["assignee_id"],
+                        assignee_name=row["assignee_name"],
+                        start_date=row["start_date"] or "01/01/2025 00:00:00",
+                        due_date=row["due_date"] or "01/01/2025 00:00:00",
+                        deadline_extend=row["deadline_extend"],
+                        type=TypeEnum(row["type"]) if row["type"] else TypeEnum.EPIC,
+                        create_at=row["create_at"] or "01/01/2025 00:00:00",
+                        update_at=row["update_at"] or "01/01/2025 00:00:00"
+                    )
+                    items.append(item)
+                    
+                    # Log item name dựa trên type
+                    item_name = row.get("epic_name") or row.get("task_name") or row.get("sub_task_name") or "Unnamed"
+                    logger.info(f"Successfully converted {row.get('type')}: {item_name}")
+                    
+                except Exception as e:
+                    logger.error(f"Error converting row to EpicResponse: {e}")
+                    logger.error(f"Row data: {dict(row)}")
+                    continue
+            
+            # 6. Build response message
+            total_items = len(items)
+            
+            # Count by type for message
+            type_counts = {"Epic": 0, "Task": 0, "Sub_task": 0}
+            for item in items:
+                type_counts[item.type.value] += 1
+            
+            # Build message parts
+            parts = []
+            if type_counts["Epic"] > 0:
+                parts.append(f"{type_counts['Epic']} epic(s)")
+            if type_counts["Task"] > 0:
+                parts.append(f"{type_counts['Task']} task(s)")
+            if type_counts["Sub_task"] > 0:
+                parts.append(f"{type_counts['Sub_task']} subtask(s)")
+            
+            message = f"Found {', '.join(parts)} for {item_type} {item_id}"
+            
+            logger.info(f"Get cascade completed: {message}")
+            
+            return GetTaskResponse(
+                status="success",
+                message=message,
+                item_type=item_type,
+                total_count=total_items,
+                items=items
+            )
+            
+        except HTTPException:
+            # Re-raise HTTP exceptions (like 404)
+            raise
+        except Exception as e:
+            logger.error(f"Error in get_task_by_id_cascade: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise Exception(f"Failed to get task cascade: {str(e)}")
+        finally:
+            if conn:
+                await conn.close()
+
+    async def update_task_by_type(
+        self,
+        request: UpdateTaskRequest,
+        item_type: str,  # "Epic", "Task", "Sub_task"
+        item_id: str,
+        workspace_id: str,
+        user_id: str
+    ) -> UpdateTaskResponse:
+        """
+        Update Epic/Task/Sub_task theo type và ID
+        
+        Args:
+            request: UpdateTaskRequest với fields cần update
+            item_type: "Epic", "Task", "Sub_task"
+            item_id: ID của item cần update
+            workspace_id: ID workspace
+            user_id: ID user
+        """
+        conn = None
+        try:
+            conn = await get_db_connection()
+            
+            # 1. Build dynamic UPDATE fields
+            update_fields = []
+            params = []
+            param_count = 1
+            
+            # 2. Handle type-specific name field
+            if item_type == "Epic" and request.epic_name:
+                update_fields.append(f"epic_name = ${param_count}")
+                params.append(request.epic_name.strip())
+                param_count += 1
+            elif item_type == "Task" and request.task_name:
+                update_fields.append(f"task_name = ${param_count}")
+                params.append(request.task_name.strip())
+                param_count += 1
+            elif item_type == "Sub_task" and request.sub_task_name:
+                update_fields.append(f"sub_task_name = ${param_count}")
+                params.append(request.sub_task_name.strip())
+                param_count += 1
+            
+            # 3. Handle common fields
+            if request.description is not None:
+                update_fields.append(f"description = ${param_count}")
+                params.append(request.description.strip() if request.description else None)
+                param_count += 1
+                
+            if request.category is not None:
+                update_fields.append(f"category = ${param_count}")
+                params.append(request.category.strip() if request.category else None)
+                param_count += 1
+                
+            if request.priority is not None:
+                update_fields.append(f"priority = ${param_count}")
+                params.append(request.priority.value)
+                param_count += 1
+                
+            if request.status is not None:
+                update_fields.append(f"status = ${param_count}")
+                params.append(request.status.value)
+                param_count += 1
+                
+            if request.start_date is not None:
+                update_fields.append(f"start_date = ${param_count}")
+                params.append(request.start_date.strip() if request.start_date else None)
+                param_count += 1
+                
+            if request.due_date is not None:
+                update_fields.append(f"due_date = ${param_count}")
+                params.append(request.due_date.strip() if request.due_date else None)
+                param_count += 1
+                
+            if request.deadline_extend is not None:
+                update_fields.append(f"deadline_extend = ${param_count}")
+                params.append(request.deadline_extend.strip() if request.deadline_extend else None)
+                param_count += 1
+            
+            # 4. Handle assignee fields
+            assignee_id = None
+            assignee_name = None
+            
+            if request.assignee_name:
+                # Lookup assignee từ team_info
+                assignee_info = await self.get_assignee_info(request.assignee_name.strip())
+                if assignee_info:
+                    assignee_id = assignee_info["member_id"]
+                    assignee_name = assignee_info["member_name"]
+                    logger.info(f"Found assignee: {assignee_name} ({assignee_id})")
+                else:
+                    logger.warning(f"Assignee not found: {request.assignee_name}")
+                    assignee_name = request.assignee_name.strip()
+                    
+                update_fields.append(f"assignee_id = ${param_count}")
+                params.append(assignee_id)
+                param_count += 1
+                
+                update_fields.append(f"assignee_name = ${param_count}")
+                params.append(assignee_name)
+                param_count += 1
+                
+            elif request.assignee_id is not None:
+                update_fields.append(f"assignee_id = ${param_count}")
+                params.append(request.assignee_id.strip() if request.assignee_id else None)
+                param_count += 1
+            
+            # 5. Auto-set update_at
+            update_fields.append(f"update_at = ${param_count}")
+            params.append(self.get_vietnam_datetime())
+            param_count += 1
+            
+            # 6. Check if có fields để update
+            if len(update_fields) <= 1:  # Chỉ có update_at
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No fields to update"
+                )
+            
+            # 7. Build WHERE clause theo type
+            if item_type == "Epic":
+                where_clause = f"epic_id = ${param_count} AND workspace_id = ${param_count+1} AND user_id = ${param_count+2}"
+            elif item_type == "Task":
+                where_clause = f"task_id = ${param_count} AND workspace_id = ${param_count+1} AND user_id = ${param_count+2}"
+            else:  # Sub_task
+                where_clause = f"sub_task_id = ${param_count} AND workspace_id = ${param_count+1} AND user_id = ${param_count+2}"
+            
+            params.extend([item_id, workspace_id, user_id])
+            
+            # 8. Execute UPDATE query
+            query = f"""
+                UPDATE ai_proma.task_info 
+                SET {', '.join(update_fields)}
+                WHERE {where_clause}
+                RETURNING 
+                    TRIM(workspace_id) as workspace_id, TRIM(user_id) as user_id, 
+                    TRIM(epic_id) as epic_id, TRIM(epic_name) as epic_name,
+                    TRIM(task_id) as task_id, TRIM(task_name) as task_name, 
+                    TRIM(sub_task_id) as sub_task_id, TRIM(sub_task_name) as sub_task_name,
+                    TRIM(description) as description, TRIM(category) as category, 
+                    TRIM(priority) as priority, TRIM(status) as status,
+                    TRIM(assignee_id) as assignee_id, TRIM(assignee_name) as assignee_name, 
+                    TRIM(start_date) as start_date, TRIM(due_date) as due_date,
+                    TRIM(deadline_extend) as deadline_extend, TRIM(type) as type, 
+                    TRIM(create_at) as create_at, TRIM(update_at) as update_at
+            """
+            
+            logger.info(f"Executing update query for {item_type}")
+            logger.debug(f"Query: {query}")
+            logger.debug(f"Params: {params}")
+            
+            result = await conn.fetchrow(query, *params)
+            
+            if not result:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"{item_type} {item_id} not found or not owned by user"
+                )
+            
+            # 9. Convert result to EpicResponse
+            updated_item = EpicResponse(
+                workspace_id=result["workspace_id"] or workspace_id,
+                user_id=result["user_id"] or user_id,
+                epic_id=result["epic_id"] or "unknown",
+                epic_name=result["epic_name"] or "Untitled Epic",
+                task_id=result["task_id"],
+                task_name=result["task_name"],
+                sub_task_id=result["sub_task_id"],
+                sub_task_name=result["sub_task_name"],
+                description=result["description"],
+                category=result["category"],
+                priority=PriorityEnum(result["priority"]) if result["priority"] else PriorityEnum.MEDIUM,
+                status=StatusEnum(result["status"]) if result["status"] else StatusEnum.TODO,
+                assignee_id=result["assignee_id"],
+                assignee_name=result["assignee_name"],
+                start_date=result["start_date"] or "01/01/2025",
+                due_date=result["due_date"] or "01/01/2025",
+                deadline_extend=result["deadline_extend"],
+                type=TypeEnum(result["type"]) if result["type"] else TypeEnum.EPIC,
+                create_at=result["create_at"] or "01/01/2025",
+                update_at=result["update_at"] or "01/01/2025"
+            )
+            
+            # 10. Build response message
+            item_name = result.get("epic_name") or result.get("task_name") or result.get("sub_task_name") or "Unnamed"
+            message = f"Successfully updated {item_type}: {item_name}"
+            
+            logger.info(f"Update completed: {message}")
+            
+            return UpdateTaskResponse(
+                status="success",
+                message=message,
+                updated_item=updated_item
+            )
+            
+        except HTTPException:
+            # Re-raise HTTP exceptions
+            raise
+        except Exception as e:
+            logger.error(f"Error in update_task_by_type: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise Exception(f"Failed to update {item_type}: {str(e)}")
         finally:
             if conn:
                 await conn.close()

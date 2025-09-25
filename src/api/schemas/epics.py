@@ -40,16 +40,16 @@ class CreateTaskRequest(BaseModel):
     priority: Optional[PriorityEnum] = Field(PriorityEnum.MEDIUM, description="Độ ưu tiên (mặc định: Medium)")
     status: Optional[StatusEnum] = Field(StatusEnum.TODO, description="Trạng thái (mặc định: To do)")
     assignee_name: Optional[str] = Field(None, max_length=100, description="Tên người được giao việc")
-    start_date: Optional[str] = Field(None, description="Ngày bắt đầu (dd/MM/yyyy hh:mm:ss)")
-    due_date: Optional[str] = Field(None, description="Ngày kết thúc (dd/MM/yyyy hh:mm:ss)")
+    start_date: Optional[str] = Field(None, description="Ngày bắt đầu (dd/MM/yyyy)")
+    due_date: Optional[str] = Field(None, description="Ngày kết thúc (dd/MM/yyyy)")
 
     @validator('start_date', 'due_date')
     def validate_date_format(cls, v):
         if v is not None:
             try:
-                datetime.strptime(v, '%d/%m/%Y %H:%M:%S')
+                datetime.strptime(v, '%d/%m/%Y')
             except ValueError:
-                raise ValueError('Date must be in format dd/MM/yyyy hh:mm:ss')
+                raise ValueError('Date must be in format dd/MM/yyyy')
         return v
     
     @validator('epic_name')
@@ -90,16 +90,16 @@ class CreateEpicRequest(BaseModel):
     priority: Optional[PriorityEnum] = Field(PriorityEnum.MEDIUM, description="Độ ưu tiên (mặc định: Medium)")
     status: Optional[StatusEnum] = Field(StatusEnum.TODO, description="Trạng thái (mặc định: To do)")
     assignee_name: Optional[str] = Field(None, max_length=100, description="Tên người được giao việc")
-    start_date: Optional[str] = Field(None, description="Ngày bắt đầu (dd/MM/yyyy hh:mm:ss)")
-    due_date: Optional[str] = Field(None, description="Ngày kết thúc (dd/MM/yyyy hh:mm:ss)")
+    start_date: Optional[str] = Field(None, description="Ngày bắt đầu (dd/MM/yyyy)")
+    due_date: Optional[str] = Field(None, description="Ngày kết thúc (dd/MM/yyyy)")
 
     @validator('start_date', 'due_date')
     def validate_date_format(cls, v):
         if v is not None:
             try:
-                datetime.strptime(v, '%d/%m/%Y %H:%M:%S')
+                datetime.strptime(v, '%d/%m/%Y')
             except ValueError:
-                raise ValueError('Date must be in format dd/MM/yyyy hh:mm:ss')
+                raise ValueError('Date must be in format dd/MM/yyyy')
         return v
 
 class EpicResponse(BaseModel):
@@ -133,6 +133,55 @@ class CreateEpicResponse(BaseModel):
     status: str
     message: str
     epic: EpicResponse
+
+class DeleteTaskRequest(BaseModel):
+    item_id: str = Field(..., min_length=1, description="ID của item cần xóa (epic-xxx, task-xxx, subtask-xxx)")
+    dry_run: bool = Field(False, description="True = preview only, False = execute delete")
+
+class UpdateTaskRequest(BaseModel):
+    # Name fields (tùy theo type)
+    epic_name: Optional[str] = Field(None, max_length=255, description="Tên epic mới (chỉ cho Epic)")
+    task_name: Optional[str] = Field(None, max_length=255, description="Tên task mới (chỉ cho Task)")
+    sub_task_name: Optional[str] = Field(None, max_length=255, description="Tên subtask mới (chỉ cho Sub_task)")
+    
+    # Common updatable fields
+    description: Optional[str] = Field(None, max_length=1000, description="Mô tả")
+    category: Optional[str] = Field(None, max_length=100, description="Danh mục")
+    priority: Optional[PriorityEnum] = Field(None, description="Độ ưu tiên")
+    status: Optional[StatusEnum] = Field(None, description="Trạng thái")
+    assignee_name: Optional[str] = Field(None, max_length=100, description="Tên người được giao việc")
+    assignee_id: Optional[str] = Field(None, description="ID người được giao việc")
+    start_date: Optional[str] = Field(None, description="Ngày bắt đầu (dd/MM/yyyy)")
+    due_date: Optional[str] = Field(None, description="Ngày kết thúc (dd/MM/yyyy)")
+    deadline_extend: Optional[str] = Field(None, description="Gia hạn deadline (dd/MM/yyyy)")
+    
+    @validator('start_date', 'due_date', 'deadline_extend')
+    def validate_date_format(cls, v):
+        if v is not None:
+            try:
+                datetime.strptime(v, '%d/%m/%Y')
+            except ValueError:
+                raise ValueError('Date must be in format dd/MM/yyyy')
+        return v
+
+class UpdateTaskResponse(BaseModel):
+    status: str
+    message: str
+    updated_item: EpicResponse
+
+class GetTaskResponse(BaseModel):
+    status: str
+    message: str
+    item_type: str  # "Epic", "Task", "Sub_task"
+    total_count: int
+    items: list[EpicResponse]  # Epic + related Tasks + Subtasks
+
+class DeleteTaskResponse(BaseModel):
+    status: str
+    message: str
+    deleted_count: dict[str, int]  # {"epic": 1, "task": 3, "subtask": 5}
+    affected_ids: list[str]
+    dry_run: bool = False
 
 class ListEpicsResponse(BaseModel):
     status: str
