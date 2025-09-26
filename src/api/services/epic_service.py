@@ -43,7 +43,30 @@ class EpicService:
         """Lấy ngày hiện tại theo múi giờ UTC+7"""
         now = datetime.now(self.vietnam_tz)
         return now.strftime('%d/%m/%Y')
-    
+
+    async def get_epic_name_by_id(self, epic_id: str) -> Optional[str]:
+        """Lấy epic_name từ epic_id"""
+        if not epic_id:
+            return None
+        
+        conn = None
+        try:
+            conn = await get_db_connection()
+            query = """
+                SELECT epic_name 
+                FROM ai_proma.task_info 
+                WHERE epic_id = $1 AND type = 'Epic'
+                LIMIT 1
+            """
+            result = await conn.fetchrow(query, epic_id)
+            return result['epic_name'] if result else None
+        except Exception as e:
+            logger.error(f"Error getting epic_name for {epic_id}: {str(e)}")
+            return None
+        finally:
+            if conn:
+                await conn.close()
+            
     def calculate_due_date(self, start_date_str: str) -> str:
         """Tính due_date = start_date + 7 ngày"""
         try:
@@ -872,7 +895,8 @@ class EpicService:
             "workspace_id": workspace_id,
             "user_id": user_id,
             "epic_id": request.epic_id if request.type != TypeEnum.EPIC else item_id,
-            "epic_name": request.epic_name if request.type == TypeEnum.EPIC else request.epic_name,
+            # "epic_name": request.epic_name if request.type == TypeEnum.EPIC else request.epic_name,
+            "epic_name": request.epic_name if request.type == TypeEnum.EPIC else await self.get_epic_name_by_id(request.epic_id),
             "task_id": item_id if request.type == TypeEnum.TASK else (request.parent_id if request.type == TypeEnum.SUBTASK else None),
             "task_name": item_name if request.type == TypeEnum.TASK else None,
             "sub_task_id": item_id if request.type == TypeEnum.SUBTASK else None,

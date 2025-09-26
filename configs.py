@@ -64,6 +64,13 @@ class AISettings(BaseSettings):
         description="AI model for marketing agent"
     )
     
+    # Project Manager agent model
+    proma_agent_model: str = Field(
+        default=os.getenv("PROMA_AGENT_MODEL"),
+        env="PROMA_AGENT_MODEL",
+        description="AI model for project manager agent"
+    )
+    
     # OpenRouter API configuration
     openrouter_api_key: str = Field(
         default=os.getenv("OPENROUTER_API_KEY"),
