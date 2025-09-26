@@ -136,7 +136,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+site
 
 # mypy
 .mypy_cache/
@@ -159,7 +159,7 @@ cython_debug/
 .idea/
 
 # Visual Studio Code
-.vscode/
+vscode/
 
 # macOS
 .DS_Store
@@ -185,4 +185,9 @@ secrets.json
 Notebook.ipynb
 output_test.json
 test.txt
-*.txt
+# Ignore specific txt files but keep requirements.txt
+*.log.txt
+*.temp.txt
+*.debug.txt
+# Keep requirements.txt for Docker build
+!requirements.txt
