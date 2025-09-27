@@ -6,6 +6,9 @@ Update Epic, Task, or Sub_task by ID
 from typing import Dict, Any, Optional
 import logging
 from src.api.services.epic_service import EpicService
+import threading
+import asyncio
+import concurrent.futures
 from src.api.logging.logger import get_logger
 
 logger = get_logger(__name__)
@@ -15,25 +18,27 @@ async def update_task_tool(
     item_id: str,  # ID of the item to update (epic-xxx, task-xxx, subtask-xxx)
     task_name: Optional[str] = None,
     description: Optional[str] = None,
-    priority: Optional[str] = None,  # "Highest", "High", "Medium", "Low", "Lowest"
+    priority: Optional[str] = None,  # "High", "Medium", "Low"
     status: Optional[str] = None,  # "To do", "Inprogress", "Done"
     assignee_name: Optional[str] = None,
+    assignee_id: Optional[str] = None,
     start_date: Optional[str] = None,  # dd/MM/yyyy format
     due_date: Optional[str] = None,  # dd/MM/yyyy format
     deadline_extend: Optional[str] = None,  # dd/MM/yyyy format
     expected_outcome: str = "Task updated successfully"
 ) -> Dict[str, Any]:
     """
-    Update an existing Epic, Task, or Sub_task
+    Universal update tool cho Epic, Task, và Sub_task
     
     Args:
         action_description: Clear description of what you intend to do
         item_id: ID of the item to update (epic-xxx, task-xxx, subtask-xxx)
-        task_name: New task name
+        task_name: New name (epic_name, task_name, or sub_task_name)
         description: New description
-        priority: New priority level
-        status: New status
+        priority: New priority level ("High", "Medium", "Low")
+        status: New status ("To do", "Inprogress", "Done")
         assignee_name: New assignee name
+        assignee_id: New assignee ID
         start_date: New start date (dd/MM/yyyy)
         due_date: New due date (dd/MM/yyyy)
         deadline_extend: Extended deadline (dd/MM/yyyy)
@@ -47,7 +52,31 @@ async def update_task_tool(
     logger.info(f"Updating item: {item_id}")
     
     try:
-        # Determine item type from ID
+        # 1. Get context from thread-local storage
+        import threading
+        context = None
+        workspace_id = None
+        user_id = None
+        
+        try:
+            context = getattr(threading.current_thread(), 'agent_context', None)
+            if context:
+                workspace_id = context.get('workspace_id')
+                user_id = context.get('user_id')
+                logger.info(f"Got context: workspace_id={workspace_id}, user_id={user_id}")
+            else:
+                logger.warning("No agent context found in thread")
+        except Exception as e:
+            logger.error(f"Error getting context: {e}")
+        
+        # 2. Fallback to environment if no context
+        if not workspace_id or not user_id:
+            import os
+            workspace_id = workspace_id or os.getenv('AGENT_WORKSPACE_ID', 'default_workspace')
+            user_id = user_id or os.getenv('AGENT_USER_ID', 'default_user')
+            logger.info(f"Using fallback context: workspace_id={workspace_id}, user_id={user_id}")
+        
+        # 3. Determine item type from ID
         item_type = None
         if item_id.startswith("epic-"):
             item_type = "Epic"
@@ -62,57 +91,59 @@ async def update_task_tool(
                 "action_description": action_description
             }
         
-        # Initialize epic service
+        # 4. Initialize epic service
         epic_service = EpicService()
         
-        # Prepare update data (only include non-None values)
-        update_data = {}
+        # 5. Prepare update data (only include non-None values)
+        updates = {}
         
+        # Handle name field based on item type
         if task_name is not None:
             if item_type == "Epic":
-                update_data["epic_name"] = task_name
+                updates["epic_name"] = task_name
             elif item_type == "Task":
-                update_data["task_name"] = task_name
+                updates["task_name"] = task_name
             elif item_type == "Sub_task":
-                update_data["sub_task_name"] = task_name
+                updates["sub_task_name"] = task_name
         
+        # Handle common fields
         if description is not None:
-            update_data["description"] = description
+            updates["description"] = description
         if priority is not None:
-            update_data["priority"] = priority
+            updates["priority"] = priority
         if status is not None:
-            update_data["status"] = status
+            updates["status"] = status
         if assignee_name is not None:
-            update_data["assignee_name"] = assignee_name
+            updates["assignee_name"] = assignee_name
+        if assignee_id is not None:
+            updates["assignee_id"] = assignee_id
         if start_date is not None:
-            update_data["start_date"] = start_date
+            updates["start_date"] = start_date
         if due_date is not None:
-            update_data["due_date"] = due_date
+            updates["due_date"] = due_date
         if deadline_extend is not None:
-            update_data["deadline_extend"] = deadline_extend
+            updates["deadline_extend"] = deadline_extend
         
-        if not update_data:
+        if not updates:
             return {
                 "status": "error",
                 "message": "No update data provided. At least one field must be specified for update.",
                 "action_description": action_description
             }
         
-        # Note: This tool requires context (workspace_id, user_id)
-        # In actual implementation, these would be injected from the agent's context
+        # 6. ✅ REAL DATABASE UPDATE
+        result = await epic_service.update_task_universal(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            target_id=item_id,
+            updates=updates
+        )
         
-        result = {
-            "status": "success",
-            "message": f"{item_type} '{item_id}' would be updated successfully",
-            "item_id": item_id,
-            "item_type": item_type,
-            "update_data": update_data,
-            "action_description": action_description,
-            "expected_outcome": expected_outcome,
-            "note": "This tool requires integration with agent context for actual update"
-        }
+        # 7. Add metadata to response
+        result["action_description"] = action_description
+        result["expected_outcome"] = expected_outcome
         
-        logger.info(f"Task update prepared: {item_type} - {item_id}")
+        logger.info(f"Task update completed: {item_type} - {item_id}")
         return result
         
     except Exception as e:
@@ -120,5 +151,6 @@ async def update_task_tool(
         return {
             "status": "error",
             "message": f"Failed to update task: {str(e)}",
-            "action_description": action_description
+            "action_description": action_description,
+            "error_details": str(e)
         }

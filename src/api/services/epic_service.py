@@ -1452,15 +1452,16 @@ class EpicService:
                     detail="No fields to update"
                 )
             
-            # 7. Build WHERE clause theo type
+            # 7. Build WHERE clause theo type (với điều kiện type để tránh update nhầm)
             if item_type == "Epic":
-                where_clause = f"epic_id = ${param_count} AND workspace_id = ${param_count+1} AND user_id = ${param_count+2}"
+                where_clause = f"epic_id = ${param_count} AND type = ${param_count+1} AND workspace_id = ${param_count+2} AND user_id = ${param_count+3}"
+                params.extend([item_id, "Epic", workspace_id, user_id])
             elif item_type == "Task":
-                where_clause = f"task_id = ${param_count} AND workspace_id = ${param_count+1} AND user_id = ${param_count+2}"
+                where_clause = f"task_id = ${param_count} AND type = ${param_count+1} AND workspace_id = ${param_count+2} AND user_id = ${param_count+3}"
+                params.extend([item_id, "Task", workspace_id, user_id])
             else:  # Sub_task
-                where_clause = f"sub_task_id = ${param_count} AND workspace_id = ${param_count+1} AND user_id = ${param_count+2}"
-            
-            params.extend([item_id, workspace_id, user_id])
+                where_clause = f"sub_task_id = ${param_count} AND type = ${param_count+1} AND workspace_id = ${param_count+2} AND user_id = ${param_count+3}"
+                params.extend([item_id, "Sub_task", workspace_id, user_id])
             
             # 8. Execute UPDATE query
             query = f"""
@@ -1539,6 +1540,152 @@ class EpicService:
         finally:
             if conn:
                 await conn.close()
-
+    async def update_task_universal(
+        self,
+        workspace_id: str,
+        user_id: str,
+        target_id: str,
+        updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Universal update method cho Epic/Task/Sub_task
+        
+        Args:
+            workspace_id: ID workspace từ JWT
+            user_id: ID user từ JWT  
+            target_id: ID của item cần update (epic-xxx, task-xxx, subtask-xxx)
+            updates: Dict chứa fields cần update
+        
+        Returns:
+            Dict chứa kết quả update
+        """
+        try:
+            # 1. Detect item type từ target_id
+            item_type = self.detect_type_from_id(target_id)
+            
+            # 2. Build UpdateTaskRequest từ updates dict
+            from src.api.schemas.epics import UpdateTaskRequest
+            
+            # Map updates dict to request fields
+            request_data = {}
+            
+            # Handle name fields
+            if "epic_name" in updates:
+                request_data["epic_name"] = updates["epic_name"]
+            elif "task_name" in updates:
+                request_data["task_name"] = updates["task_name"]  
+            elif "sub_task_name" in updates:
+                request_data["sub_task_name"] = updates["sub_task_name"]
+            
+            # Handle common fields
+            for field in ["description", "category", "priority", "status", 
+                         "start_date", "due_date", "deadline_extend", 
+                         "assignee_id", "assignee_name"]:
+                if field in updates:
+                    request_data[field] = updates[field]
+            
+            # Handle priority/status enums
+            if "priority" in request_data:
+                if isinstance(request_data["priority"], str):
+                    request_data["priority"] = PriorityEnum(request_data["priority"])
+            
+            if "status" in request_data:
+                if isinstance(request_data["status"], str):
+                    request_data["status"] = StatusEnum(request_data["status"])
+            
+            # Create UpdateTaskRequest
+            update_request = UpdateTaskRequest(**request_data)
+            
+            # 3. Call existing update_task_by_type method
+            result = await self.update_task_by_type(
+                request=update_request,
+                item_type=item_type,
+                item_id=target_id,
+                workspace_id=workspace_id,
+                user_id=user_id
+            )
+            
+            # 4. Convert to dict response
+            return {
+                "status": "success",
+                "message": result.message,
+                "item_id": target_id,
+                "item_type": item_type,
+                "updated_item": {
+                    "workspace_id": result.updated_item.workspace_id,
+                    "user_id": result.updated_item.user_id,
+                    "epic_id": result.updated_item.epic_id,
+                    "epic_name": result.updated_item.epic_name,
+                    "task_id": result.updated_item.task_id,
+                    "task_name": result.updated_item.task_name,
+                    "sub_task_id": result.updated_item.sub_task_id,
+                    "sub_task_name": result.updated_item.sub_task_name,
+                    "description": result.updated_item.description,
+                    "priority": result.updated_item.priority.value if result.updated_item.priority else None,
+                    "status": result.updated_item.status.value if result.updated_item.status else None,
+                    "assignee_id": result.updated_item.assignee_id,
+                    "assignee_name": result.updated_item.assignee_name,
+                    "start_date": result.updated_item.start_date,
+                    "due_date": result.updated_item.due_date,
+                    "update_at": result.updated_item.update_at
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in update_task_universal: {e}")
+            return {
+                "status": "error",
+                "message": f"Failed to update {target_id}: {str(e)}",
+                "item_id": target_id,
+                "error_details": str(e)
+            }
+    
+    async def resolve_assignee_fields(
+        self,
+        workspace_id: str,
+        assignee_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Smart assignee resolution từ assignee_id hoặc assignee_name
+        
+        Args:
+            workspace_id: ID workspace
+            assignee_data: Dict chứa assignee_id và/hoặc assignee_name
+        
+        Returns:
+            Dict với resolved assignee_id và assignee_name
+        """
+        try:
+            assignee_id = assignee_data.get("assignee_id")
+            assignee_name = assignee_data.get("assignee_name")
+            
+            # Case 1: Có cả 2 fields - validate consistency
+            if assignee_id and assignee_name:
+                # TODO: Add cross-validation logic here
+                return {"assignee_id": assignee_id, "assignee_name": assignee_name}
+            
+            # Case 2: Chỉ có assignee_id - lookup name
+            elif assignee_id:
+                # TODO: Lookup assignee_name from team_info
+                return {"assignee_id": assignee_id, "assignee_name": None}
+            
+            # Case 3: Chỉ có assignee_name - lookup id  
+            elif assignee_name:
+                assignee_info = await self.get_assignee_info(assignee_name)
+                if assignee_info:
+                    return {
+                        "assignee_id": assignee_info["member_id"],
+                        "assignee_name": assignee_info["member_name"]
+                    }
+                else:
+                    return {"assignee_id": None, "assignee_name": assignee_name}
+            
+            # Case 4: Không có gì
+            else:
+                return {"assignee_id": None, "assignee_name": None}
+                
+        except Exception as e:
+            logger.error(f"Error in resolve_assignee_fields: {e}")
+            return {"assignee_id": None, "assignee_name": assignee_name}
 # Singleton instance
 epic_service = EpicService()

@@ -13,7 +13,8 @@ from configs import get_ai_settings
 
 # Import Project Manager tools
 from src.agents.project_manager_agent.tools.context_aware_create_task import context_aware_create_task_tool
-from src.agents.project_manager_agent.tools.list_tasks_tool import list_tasks_tool
+# from src.agents.project_manager_agent.tools.list_tasks_tool import list_tasks_tool
+from src.agents.project_manager_agent.tools.list_tasks_tool import smart_list_tasks_tool
 from src.agents.project_manager_agent.tools.update_task_tool import update_task_tool
 from src.agents.project_manager_agent.tools.delete_task_tool import delete_task_by_name_tool
 
@@ -136,7 +137,8 @@ project_manager_agent = LlmAgent(
     tools=[
         # Core task management tools
         context_aware_create_task_tool,
-        list_tasks_tool, 
+        # list_tasks_tool, 
+        smart_list_tasks_tool,
         update_task_tool,
         delete_task_by_name_tool,
         
