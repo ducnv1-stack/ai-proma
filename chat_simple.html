@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Proma Chat - Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .chat-area {
+            margin-top: 20px;
+        }
+        .messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-radius: 10px;
+        }
+        .message.user {
+            background: #007bff;
+            color: white;
+            text-align: right;
+        }
+        .message.agent {
+            background: #e9ecef;
+            color: #333;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI-Proma Chat - Simple Test</h1>
+            <p>Debug và Test Authentication</p>
+        </div>
+
+        <!-- Status Display -->
+        <div id="statusDisplay"></div>
+
+        <!-- Test Authentication -->
+        <div class="test-section">
+            <h3>🔐 Test Authentication</h3>
+            <button onclick="testServerConnection()">Test Server Connection</button>
+            <button onclick="testAuthentication()">Test Authentication</button>
+            <button onclick="clearLogs()">Clear Logs</button>
+            <div id="authLog" class="log"></div>
+        </div>
+
+        <!-- Test Chat -->
+        <div class="test-section">
+            <h3>💬 Test Chat</h3>
+            <div class="chat-area">
+                <div id="messages" class="messages"></div>
+                <div class="input-area">
+                    <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." disabled>
+                    <button onclick="sendMessage()" id="sendBtn" disabled>Gửi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = null;
+        let sessionId = null;
+        const apiBase = 'http://localhost:8000/api/v1';
+        
+        const jwtPayload = {
+            "sub": "XCEL_BOT",
+            "user_name": "XCEL_BOT",
+            "user_id": "65cd8c30-5300-4b73-a9fa-add929ad6fd8",
+            "agent_id": "project_manager_agent",
+            "workspace_id": "64b34773-c1a6-4e65-bfa2-b9e8b0b2a06b",
+            "role": "user",
+            "user_info": "",
+            "des": "my name is DUC"
+        };
+
+        function log(message) {
+            const logElement = document.getElementById('authLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusDisplay');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function clearLogs() {
+            document.getElementById('authLog').textContent = '';
+        }
+
+        async function testServerConnection() {
+            log('Testing server connection...');
+            showStatus('Đang test kết nối server...', 'info');
+            
+            try {
+                const response = await fetch(`${apiBase.replace('/api/v1', '')}/docs`, {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+                
+                log('✅ Server connection test completed');
+                showStatus('Server có thể kết nối được', 'success');
+            } catch (error) {
+                log(`❌ Server connection failed: ${error.message}`);
+                showStatus(`Không thể kết nối server: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAuthentication() {
+            log('Starting authentication test...');
+            log(`API URL: ${apiBase}/auth/token`);
+            log(`Payload: ${JSON.stringify(jwtPayload, null, 2)}`);
+            
+            showStatus('Đang test authentication...', 'info');
+            
+            try {
+                // Try different approaches
+                log('Attempting fetch with different configurations...');
+                
+                const response = await fetch(`${apiBase}/auth/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+                    },
+                    body: JSON.stringify(jwtPayload),
+                    mode: 'cors',
+                    credentials: 'omit',
+                    cache: 'no-cache'
+                });
+
+                log(`Response status: ${response.status}`);
+                log(`Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Response data: ${JSON.stringify(data, null, 2)}`);
+                    
+                    if (data.access_token) {
+                        token = data.access_token;
+                        log(`✅ Authentication successful!`);
+                        log(`Token length: ${token.length}`);
+                        log(`Token preview: ${token.substring(0, 50)}...`);
+                        
+                        showStatus('✅ Authentication thành công! Có thể chat ngay.', 'success');
+                        
+                        // Enable chat
+                        document.getElementById('messageInput').disabled = false;
+                        document.getElementById('sendBtn').disabled = false;
+                    } else {
+                        throw new Error('No access_token in response');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ HTTP Error: ${response.status}`);
+                    log(`Error response: ${errorText}`);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+            } catch (error) {
+                log(`❌ Authentication failed: ${error.message}`);
+                log(`Error details: ${error.stack}`);
+                
+                // Try alternative method with XMLHttpRequest
+                log('Trying alternative method with XMLHttpRequest...');
+                try {
+                    await testAuthWithXHR();
+                } catch (xhrError) {
+                    log(`❌ XHR method also failed: ${xhrError.message}`);
+                    
+                    let errorMsg = 'Authentication failed';
+                    if (error.message.includes('Failed to fetch')) {
+                        errorMsg = 'Không thể kết nối server. Có thể:\n1. Server chưa chạy\n2. CORS chưa được cấu hình\n3. Port 8000 bị block\n4. Firewall chặn kết nối';
+                    } else if (error.message.includes('NetworkError')) {
+                        errorMsg = 'Lỗi mạng hoặc CORS';
+                    } else {
+                        errorMsg = error.message;
+                    }
+                    
+                    showStatus(`❌ ${errorMsg}`, 'error');
+                }
+            }
+        }
+
+        function testAuthWithXHR() {
+            return new Promise((resolve, reject) => {
+                log('Using XMLHttpRequest as fallback...');
+                
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${apiBase}/auth/token`, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('Accept', 'application/json');
+                
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        log(`XHR Status: ${xhr.status}`);
+                        log(`XHR Response: ${xhr.responseText}`);
+                        
+                        if (xhr.status === 200) {
+                            try {
+                                const data = JSON.parse(xhr.responseText);
+                                if (data.access_token) {
+                                    token = data.access_token;
+                                    log(`✅ XHR Authentication successful!`);
+                                    log(`Token length: ${token.length}`);
+                                    
+                                    showStatus('✅ Authentication thành công với XHR!', 'success');
+                                    
+                                    // Enable chat
+                                    document.getElementById('messageInput').disabled = false;
+                                    document.getElementById('sendBtn').disabled = false;
+                                    resolve(data);
+                                } else {
+                                    reject(new Error('No access_token in XHR response'));
+                                }
+                            } catch (parseError) {
+                                reject(new Error(`Parse error: ${parseError.message}`));
+                            }
+                        } else {
+                            reject(new Error(`XHR HTTP ${xhr.status}: ${xhr.responseText}`));
+                        }
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    reject(new Error('XHR Network error'));
+                };
+                
+                xhr.ontimeout = function() {
+                    reject(new Error('XHR Timeout'));
+                };
+                
+                xhr.timeout = 10000; // 10 second timeout
+                xhr.send(JSON.stringify(jwtPayload));
+            });
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || !token) {
+                showStatus('Chưa có token hoặc message trống', 'error');
+                return;
+            }
+
+            // Add user message
+            addMessage('user', message);
+            input.value = '';
+
+            try {
+                const payload = {
+                    session_id: sessionId,
+                    message: message,
+                    agent_id: "project_manager_agent"
+                };
+
+                log(`Sending message: ${JSON.stringify(payload)}`);
+
+                const response = await fetch(`${apiBase}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    log('✅ Message sent successfully');
+                    addMessage('agent', 'Message sent successfully! (Streaming not implemented in simple version)');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Chat error: ${response.status} - ${errorText}`);
+                    addMessage('agent', `Error: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                log(`❌ Send message error: ${error.message}`);
+                addMessage('agent', `Error: ${error.message}`);
+            }
+        }
+
+        function addMessage(sender, content) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Auto test on load
+        window.onload = function() {
+            log('Page loaded. Ready for testing.');
+            showStatus('Sẵn sàng test. Nhấn "Test Server Connection" để bắt đầu.', 'info');
+        };
+    </script>
+</body>
+</html>

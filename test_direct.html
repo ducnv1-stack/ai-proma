@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; width: 300px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Direct API Test</h1>
+        
+        <div class="section">
+            <h3>Step 1: Test Basic Connection</h3>
+            <button onclick="testBasicConnection()">Test localhost:8000</button>
+            <div id="connectionResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>Step 2: Manual cURL Test</h3>
+            <p>Copy và chạy command này trong terminal:</p>
+            <div class="log" id="curlCommand">
+curl -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sub": "XCEL_BOT",
+    "user_name": "XCEL_BOT",
+    "user_id": "65cd8c30-5300-4b73-a9fa-add929ad6fd8",
+    "agent_id": "project_manager_agent",
+    "workspace_id": "64b34773-c1a6-4e65-bfa2-b9e8b0b2a06b",
+    "role": "user",
+    "user_info": "",
+    "des": "my name is DUC"
+  }'
+            </div>
+            <p>Paste kết quả vào đây:</p>
+            <textarea id="curlResult" rows="5" style="width: 100%; font-family: monospace;"></textarea>
+            <button onclick="parseCurlResult()">Parse Result</button>
+        </div>
+
+        <div class="section">
+            <h3>Step 3: Direct Browser Test (No CORS)</h3>
+            <p>Nếu cURL work, thử method này:</p>
+            <button onclick="testWithJSONP()">Test JSONP Method</button>
+            <button onclick="testWithProxy()">Test với Proxy</button>
+            <div id="directResult"></div>
+        </div>
+
+        <div class="section">
+            <h3>Step 4: Alternative Solutions</h3>
+            <button onclick="showAlternatives()">Show Solutions</button>
+            <div id="alternatives"></div>
+        </div>
+
+        <div class="section">
+            <h3>Debug Logs</h3>
+            <button onclick="clearLogs()">Clear</button>
+            <div id="debugLog" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('debugLog').textContent = '';
+        }
+
+        async function testBasicConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            log('Testing basic connection to localhost:8000...');
+            
+            try {
+                // Test if server is running by trying to fetch docs
+                const response = await fetch('http://localhost:8000/docs', {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+                
+                log('Basic connection test completed (no-cors mode)');
+                resultDiv.innerHTML = '<div class="info">✅ Server seems to be running (no-cors test passed)</div>';
+                
+                // Try with CORS
+                try {
+                    const corsResponse = await fetch('http://localhost:8000/docs', {
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+                    log(`CORS test: ${corsResponse.status}`);
+                    resultDiv.innerHTML += '<div class="success">✅ CORS is working!</div>';
+                } catch (corsError) {
+                    log(`CORS test failed: ${corsError.message}`);
+                    resultDiv.innerHTML += '<div class="error">❌ CORS is blocked</div>';
+                }
+                
+            } catch (error) {
+                log(`Connection test failed: ${error.message}`);
+                resultDiv.innerHTML = '<div class="error">❌ Cannot connect to server. Is it running on port 8000?</div>';
+            }
+        }
+
+        function parseCurlResult() {
+            const result = document.getElementById('curlResult').value.trim();
+            const resultDiv = document.getElementById('directResult');
+            
+            if (!result) {
+                resultDiv.innerHTML = '<div class="error">Please paste cURL result first</div>';
+                return;
+            }
+
+            log('Parsing cURL result...');
+            log(`cURL result: ${result}`);
+
+            try {
+                const data = JSON.parse(result);
+                if (data.access_token) {
+                    log('✅ cURL authentication successful!');
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ cURL worked! Token received: ${data.access_token.substring(0, 30)}...
+                            <br><strong>Problem is CORS in browser, not server!</strong>
+                        </div>
+                    `;
+                    showCORSSolutions();
+                } else {
+                    log('❌ No access_token in cURL result');
+                    resultDiv.innerHTML = '<div class="error">❌ No access_token in response</div>';
+                }
+            } catch (parseError) {
+                log(`Parse error: ${parseError.message}`);
+                
+                // Check if it's an error response
+                if (result.includes('error') || result.includes('detail')) {
+                    resultDiv.innerHTML = `<div class="error">❌ Server error: ${result}</div>`;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ Invalid JSON response</div>';
+                }
+            }
+        }
+
+        function showCORSSolutions() {
+            const altDiv = document.getElementById('alternatives');
+            altDiv.innerHTML = `
+                <div class="info">
+                    <h4>🔧 CORS Solutions:</h4>
+                    <p><strong>1. Fix Backend CORS (Recommended):</strong></p>
+                    <pre>
+# In main.py, add:
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+                    </pre>
+                    
+                    <p><strong>2. Use Browser Extension:</strong></p>
+                    <p>Install "CORS Unblock" extension for Chrome/Edge</p>
+                    
+                    <p><strong>3. Run Chrome with disabled security:</strong></p>
+                    <pre>chrome.exe --user-data-dir=/tmp/chrome --disable-web-security --disable-features=VizDisplayCompositor</pre>
+                    
+                    <p><strong>4. Use Proxy Server:</strong></p>
+                    <p>Create a simple proxy to bypass CORS</p>
+                </div>
+            `;
+        }
+
+        async function testWithJSONP() {
+            log('Testing JSONP method...');
+            const resultDiv = document.getElementById('directResult');
+            
+            // JSONP won't work for POST requests, but let's try a different approach
+            const script = document.createElement('script');
+            script.src = 'http://localhost:8000/api/v1/agents/alls?callback=handleJSONP';
+            
+            window.handleJSONP = function(data) {
+                log('JSONP response received');
+                resultDiv.innerHTML = '<div class="success">✅ JSONP method works! Server is accessible.</div>';
+                document.head.removeChild(script);
+            };
+            
+            script.onerror = function() {
+                log('JSONP method failed');
+                resultDiv.innerHTML = '<div class="error">❌ JSONP method failed</div>';
+                document.head.removeChild(script);
+            };
+            
+            document.head.appendChild(script);
+            
+            // Cleanup after 5 seconds
+            setTimeout(() => {
+                if (document.head.contains(script)) {
+                    document.head.removeChild(script);
+                    log('JSONP timeout');
+                }
+            }, 5000);
+        }
+
+        function testWithProxy() {
+            const resultDiv = document.getElementById('directResult');
+            resultDiv.innerHTML = `
+                <div class="info">
+                    <h4>🔄 Proxy Solution:</h4>
+                    <p>Create a simple proxy server:</p>
+                    <pre>
+# proxy.js
+const express = require('express');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+const app = express();
+
+app.use('/api', createProxyMiddleware({
+  target: 'http://localhost:8000',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api': '/api/v1'
+  }
+}));
+
+app.listen(3000, () => {
+  console.log('Proxy running on port 3000');
+});
+                    </pre>
+                    <p>Then use: http://localhost:3000/api/auth/token</p>
+                </div>
+            `;
+        }
+
+        function showAlternatives() {
+            const altDiv = document.getElementById('alternatives');
+            altDiv.innerHTML = `
+                <div class="info">
+                    <h4>🛠️ Alternative Solutions:</h4>
+                    
+                    <p><strong>Option 1: Fix CORS in FastAPI</strong></p>
+                    <p>Add CORS middleware to main.py (most recommended)</p>
+                    
+                    <p><strong>Option 2: Browser Extension</strong></p>
+                    <p>Install "CORS Unblock" or "Disable CORS" extension</p>
+                    
+                    <p><strong>Option 3: Desktop App</strong></p>
+                    <p>Use Electron or Tauri to create desktop app (no CORS restrictions)</p>
+                    
+                    <p><strong>Option 4: Proxy Server</strong></p>
+                    <p>Create intermediate proxy server</p>
+                    
+                    <p><strong>Option 5: Server-Side Rendering</strong></p>
+                    <p>Move frontend to same server as backend</p>
+                </div>
+            `;
+        }
+
+        // Auto-run basic test on load
+        window.onload = function() {
+            log('Page loaded. Ready for testing.');
+            setTimeout(testBasicConnection, 1000);
+        };
+    </script>
+</body>
+</html>

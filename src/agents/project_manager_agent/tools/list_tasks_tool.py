@@ -11,7 +11,7 @@ from src.api.logging.logger import get_logger
 
 logger = get_logger(__name__)
 
-async def list_tasks_tool(
+def list_tasks_tool(
     action_description: str,
     task_type: str = "All",  # "Epic", "Task", "Sub_task", "All"
     time_filter: Optional[str] = None,  # "today", "this_week", "this_month", "overdue"

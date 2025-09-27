@@ -67,6 +67,29 @@ class EpicService:
             if conn:
                 await conn.close()
             
+    async def get_task_name_by_id(self, task_id: str) -> str:
+        """Lấy task_name từ task_id"""
+        if not task_id:
+            return None
+        
+        conn = None
+        try:
+            conn = await get_db_connection()
+            query = """
+                SELECT TRIM(task_name) as task_name
+                FROM ai_proma.task_info 
+                WHERE TRIM(task_id) = $1 AND TRIM(type) = 'Task'
+                LIMIT 1
+        """
+            result = await conn.fetchrow(query, task_id.strip())
+            return result["task_name"] if result else None
+        except Exception as e:
+            logger.error(f"Error getting task name by ID {task_id}: {e}")
+            return None
+        finally:
+            if conn:
+                await conn.close()
+
     def calculate_due_date(self, start_date_str: str) -> str:
         """Tính due_date = start_date + 7 ngày"""
         try:
@@ -875,6 +898,12 @@ class EpicService:
         start_date = request.start_date or self.get_vietnam_datetime()
         due_date = request.due_date or self.calculate_due_date(start_date)
         
+        task_name = (
+            item_name if request.type == TypeEnum.TASK 
+            else await self.get_task_name_by_id(request.parent_id) if request.type == TypeEnum.SUBTASK 
+            else None
+        )
+        
         # 3. Xử lý assignee - mặc định là người tạo
         assignee_id = user_id
         assignee_name = user_name
@@ -898,7 +927,7 @@ class EpicService:
             # "epic_name": request.epic_name if request.type == TypeEnum.EPIC else request.epic_name,
             "epic_name": request.epic_name if request.type == TypeEnum.EPIC else await self.get_epic_name_by_id(request.epic_id),
             "task_id": item_id if request.type == TypeEnum.TASK else (request.parent_id if request.type == TypeEnum.SUBTASK else None),
-            "task_name": item_name if request.type == TypeEnum.TASK else None,
+            "task_name": task_name,
             "sub_task_id": item_id if request.type == TypeEnum.SUBTASK else None,
             "sub_task_name": item_name if request.type == TypeEnum.SUBTASK else None,
             "description": request.description,
