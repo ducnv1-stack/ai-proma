@@ -39,6 +39,22 @@ def smart_list_tasks_tool(
     
     logger.info(f"[SMART TOOL] smart_list_tasks_tool: {action_description}")
     logger.info(f"Parameters: scope={scope}, hierarchy={include_hierarchy}, time_filter={time_filter}")
+
+    # Lightweight natural-language mapping when time_filter is not set
+    if not time_filter and isinstance(action_description, str):
+        text = action_description.lower().strip()
+        if any(k in text for k in ["sắp đến hạn", "sap den han", "due soon", "upcoming", "gan den han"]):
+            time_filter = "due_soon"
+        elif any(k in text for k in ["tháng sau", "thang sau", "next month"]):
+            time_filter = "next_month"
+        elif any(k in text for k in ["hôm nay", "hom nay", "today"]):
+            time_filter = "today"
+        elif any(k in text for k in ["tuần này", "tuan nay", "this week", "this_week"]):
+            time_filter = "this_week"
+        elif any(k in text for k in ["tháng này", "thang nay", "this month", "this_month"]):
+            time_filter = "this_month"
+        elif any(k in text for k in ["quá hạn", "qua han", "overdue"]):
+            time_filter = "overdue"
     
     try:
         # 1. Get context from thread-local storage
@@ -91,6 +107,26 @@ def smart_list_tasks_tool(
         
         async def fetch_data():
             nonlocal all_items, epics, tasks, subtasks
+            # Prefer DB-side time filtering if requested
+            if time_filter:
+                try:
+                    items = await epic_service.list_tasks_by_time_period(
+                        workspace_id=workspace_id,
+                        user_id=user_id,
+                        time_period=time_filter,
+                        scope=("all" if scope == "all" else scope.title()),
+                        assignee_name=assignee_name
+                    )
+                    all_items.extend(items)
+                    # When time filter is used, we return flat items; hierarchy will be built if requested
+                    epics = [i for i in items if (hasattr(i.type, 'value') and i.type.value == 'Epic') or str(i.type) == 'Epic']
+                    tasks = [i for i in items if (hasattr(i.type, 'value') and i.type.value == 'Task') or str(i.type) == 'Task']
+                    subtasks = [i for i in items if (hasattr(i.type, 'value') and i.type.value == 'Sub_task') or str(i.type) == 'Sub_task']
+                    logger.info(f"Fetched {len(items)} items by time period: {time_filter}")
+                    return
+                except Exception as e:
+                    logger.warning(f"DB time filter failed, falling back to type-based fetch: {e}")
+            # Fallback: fetch by type then apply in-memory filters
             for item_type in items_to_fetch:
                 try:
                     items = await epic_service.list_tasks_by_type(
@@ -99,14 +135,12 @@ def smart_list_tasks_tool(
                         type_filter=item_type
                     )
                     all_items.extend(items)
-                    
                     if item_type == "Epic":
                         epics = items
                     elif item_type == "Task":
                         tasks = items
                     elif item_type == "Sub_task":
                         subtasks = items
-                        
                     logger.info(f"Fetched {len(items)} {item_type.lower()}s")
                 except Exception as e:
                     logger.error(f"Error fetching {item_type}: {e}")

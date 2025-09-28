@@ -62,6 +62,12 @@ async def create_new_session_internal(agent_id: str, user_id: str, workspace_id:
 async def validate_session_internal(session_id: str, agent_id: str, workspace_id: str, user_id: str) -> dict:
     """Validate existing session internally"""
     try:
+        # Check empty session_id early to avoid DB call
+        if not session_id or (isinstance(session_id, str) and session_id.strip() == ""):
+            raise HTTPException(
+                status_code=400,
+                detail="Session ID cannot be empty"
+            )
         current_session = await session_service.get_session(
             app_name=agent_id,
             user_id=user_id,
@@ -318,7 +324,7 @@ async def unified_chat(
     session_id = data.session_id
 
     # Handle session logic
-    if session_id is None:
+    if not session_id or (isinstance(session_id, str) and session_id.strip() == ""):
         # Create new session
         logger.info(f"Creating new session for agent: {data.agent_id}")
         session_info = await create_new_session_internal(

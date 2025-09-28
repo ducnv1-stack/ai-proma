@@ -17,6 +17,7 @@ from src.agents.project_manager_agent.tools.context_aware_create_task import con
 from src.agents.project_manager_agent.tools.list_tasks_tool import smart_list_tasks_tool
 from src.agents.project_manager_agent.tools.update_task_tool import update_task_tool
 from src.agents.project_manager_agent.tools.delete_task_tool import delete_task_by_name_tool
+from src.agents.project_manager_agent.tools.generate_report_tool import generate_report_tool
 
 # Get AI settings for model configuration
 ai_settings = get_ai_settings()
@@ -141,6 +142,9 @@ project_manager_agent = LlmAgent(
         smart_list_tasks_tool,
         update_task_tool,
         delete_task_by_name_tool,
+        
+        # Reporting and analysis tools
+        generate_report_tool,
         
         # Team and project analysis tools
         get_team_members_tool,

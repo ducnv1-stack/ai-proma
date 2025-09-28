@@ -872,6 +872,152 @@ class EpicService:
             if conn:
                 await conn.close()
 
+    async def list_tasks_by_time_period(
+        self,
+        workspace_id: str,
+        user_id: str,
+        time_period: str,  # "today", "this_week", "this_month", "overdue"
+        scope: str = "all",  # "all", "Epic", "Task", "Sub_task"
+        assignee_name: Optional[str] = None
+    ) -> list[EpicResponse]:
+        """
+        Lọc tasks theo khoảng thời gian trực tiếp tại DB, giữ nguyên schema ngày dạng chuỗi dd/MM/YYYY.
+
+        - Ngày hiệu lực: ưu tiên due_date, nếu trống dùng start_date
+        - Múi giờ: Asia/Ho_Chi_Minh
+        - Scope: all/Epic/Task/Sub_task
+        """
+        conn = None
+        try:
+            conn = await get_db_connection()
+
+            # Determine type condition based on scope
+            if scope.lower() == "all":
+                type_condition = "TRIM(type) IN ('Epic','Task','Sub_task')"
+                query_params = [workspace_id, user_id]
+            else:
+                # Normalize scope to match DB values
+                normalized = scope if scope in ("Epic","Task","Sub_task") else scope.title()
+                type_condition = "TRIM(type) = $3"
+                query_params = [workspace_id, user_id, normalized]
+
+            # Build effective date expression using COALESCE(due_date, start_date)
+            effective_date_expr = (
+                "COALESCE("
+                "to_timestamp(NULLIF(TRIM(due_date), ''), 'DD/MM/YYYY'),"
+                "to_timestamp(NULLIF(TRIM(start_date), ''), 'DD/MM/YYYY')"
+                ")"
+            )
+
+            # Build time window condition based on time_period
+            # We compare by ::date with VN timezone
+            vn_now_date = "(now() at time zone 'Asia/Ho_Chi_Minh')::date"
+            week_start = "date_trunc('week', (now() at time zone 'Asia/Ho_Chi_Minh'))::date"
+            week_end = f"({week_start} + INTERVAL '6 days')"
+            month_start = "date_trunc('month', (now() at time zone 'Asia/Ho_Chi_Minh'))::date"
+            month_end = f"({month_start} + INTERVAL '1 month')"
+
+            if time_period == "today":
+                time_condition = f"({effective_date_expr})::date = {vn_now_date}"
+            elif time_period == "this_week":
+                time_condition = f"({effective_date_expr})::date BETWEEN {week_start} AND {week_end}"
+            elif time_period == "this_month":
+                time_condition = f"({effective_date_expr})::date >= {month_start} AND ({effective_date_expr})::date < {month_end}"
+            elif time_period == "next_month":
+                next_month_start = month_end
+                next_month_end = f"({month_end} + INTERVAL '1 month')"
+                time_condition = f"({effective_date_expr})::date >= {next_month_start} AND ({effective_date_expr})::date < {next_month_end}"
+            elif time_period == "due_soon":
+                # Default window: today .. today + 3 days (inclusive)
+                time_condition = f"({effective_date_expr})::date >= {vn_now_date} AND ({effective_date_expr})::date <= ({vn_now_date} + INTERVAL '3 days')"
+            elif time_period == "overdue":
+                time_condition = f"({effective_date_expr})::date < {vn_now_date}"
+            else:
+                # Default: no time filter
+                time_condition = "TRUE"
+
+            # Optional assignee filter
+            assignee_condition = ""
+            if assignee_name:
+                assignee_condition = " AND assignee_name IS NOT NULL AND LOWER(TRIM(assignee_name)) LIKE $X "
+
+            # Compose query
+            base_query = f"""
+                SELECT 
+                    TRIM(workspace_id) as workspace_id, TRIM(user_id) as user_id, 
+                    TRIM(epic_id) as epic_id, TRIM(epic_name) as epic_name,
+                    TRIM(task_id) as task_id, TRIM(task_name) as task_name, 
+                    TRIM(sub_task_id) as sub_task_id, TRIM(sub_task_name) as sub_task_name,
+                    TRIM(description) as description, TRIM(category) as category, 
+                    TRIM(priority) as priority, TRIM(status) as status,
+                    TRIM(assignee_id) as assignee_id, TRIM(assignee_name) as assignee_name, 
+                    TRIM(start_date) as start_date, TRIM(due_date) as due_date,
+                    TRIM(deadline_extend) as deadline_extend, TRIM(type) as type, 
+                    TRIM(create_at) as create_at, TRIM(update_at) as update_at
+                FROM ai_proma.task_info 
+                WHERE {type_condition}
+                  AND TRIM(workspace_id) = $1
+                  AND TRIM(user_id) = $2
+                  AND (
+                        (due_date IS NOT NULL AND TRIM(due_date) <> '')
+                     OR (start_date IS NOT NULL AND TRIM(start_date) <> '')
+                  )
+                  AND {time_condition}
+            """
+
+            # Handle dynamic parameter for assignee if provided
+            if assignee_name:
+                # Replace $X with next param index
+                next_idx = len(query_params) + 1
+                base_query += f" AND LOWER(TRIM(assignee_name)) LIKE ${next_idx}"
+                query_params.append(f"%{assignee_name.lower()}%")
+
+            # Order by effective date then update_at
+            base_query += f" ORDER BY ({effective_date_expr}) NULLS LAST, update_at DESC"
+
+            results = await conn.fetch(base_query, *query_params)
+
+            items: list[EpicResponse] = []
+            for row in results:
+                try:
+                    item = EpicResponse(
+                        workspace_id=row["workspace_id"] or workspace_id,
+                        user_id=row["user_id"] or user_id,
+                        epic_id=row["epic_id"],
+                        epic_name=row["epic_name"],
+                        task_id=row["task_id"],
+                        task_name=row["task_name"],
+                        sub_task_id=row["sub_task_id"],
+                        sub_task_name=row["sub_task_name"],
+                        description=row["description"],
+                        category=row["category"],
+                        priority=PriorityEnum(row["priority"]) if row["priority"] else PriorityEnum.MEDIUM,
+                        status=StatusEnum(row["status"]) if row["status"] else StatusEnum.TODO,
+                        assignee_id=row["assignee_id"],
+                        assignee_name=row["assignee_name"],
+                        start_date=row["start_date"] or "01/01/2025 00:00:00",
+                        due_date=row["due_date"] or "01/01/2025 00:00:00",
+                        deadline_extend=row["deadline_extend"],
+                        type=TypeEnum(row["type"]) if row["type"] else TypeEnum.EPIC,
+                        create_at=row["create_at"] or "01/01/2025 00:00:00",
+                        update_at=row["update_at"] or "01/01/2025 00:00:00"
+                    )
+                    items.append(item)
+                except Exception as e:
+                    logger.error(f"Error converting row to EpicResponse (time filter): {e}")
+                    logger.error(f"Row data: {dict(row)}")
+                    continue
+
+            return items
+        except Exception as e:
+            logger.error(f"Error list_tasks_by_time_period: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise Exception(f"Failed to list tasks by time period: {str(e)}")
+        finally:
+            if conn:
+                await conn.close()
+
     async def create_task_unified(
         self, 
         request: CreateTaskRequest, 
