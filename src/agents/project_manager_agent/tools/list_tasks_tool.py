@@ -14,6 +14,146 @@ from src.api.logging.logger import get_logger
 
 logger = get_logger(__name__)
 
+def _detect_language(text: Optional[str]) -> str:
+    """Very small heuristic to detect Vietnamese vs English from user text.
+    Returns 'vi' or 'en'. Default is 'en' to be safe.
+    """
+    if not text:
+        return 'en'
+    t = text.lower()
+    # Vietnamese diacritics or common words
+    vi_signals = [
+        "à", "á", "ả", "ã", "ạ", "ă", "ằ", "ắ", "ẳ", "ẵ", "ặ",
+        "â", "ầ", "ấ", "ẩ", "ẫ", "ậ", "đ",
+        "è", "é", "ẻ", "ẽ", "ẹ",
+        "ì", "í", "ỉ", "ĩ", "ị",
+        "ò", "ó", "ỏ", "õ", "ọ", "ô", "ồ", "ố", "ổ", "ỗ", "ộ", "ơ", "ờ", "ớ", "ở", "ỡ", "ợ",
+        "ù", "ú", "ủ", "ũ", "ụ", "ư", "ừ", "ứ", "ử", "ữ", "ự",
+        "hôm nay", "hom nay", "tuần", "tháng", "han chot", "hạn", "quá hạn", "sắp"
+    ]
+    if any(sig in t for sig in vi_signals):
+        return 'vi'
+    return 'en'
+
+def _get_labels(lang: str) -> Dict[str, str]:
+    """Return localized labels for types and statuses used for display only.
+    Does not change underlying logic or DB values.
+    """
+    if lang == 'vi':
+        return {
+            "Epic": "Hạng mục lớn",
+            "Task": "Nhiệm vụ",
+            "Sub_task": "Nhiệm vụ con",
+            "To do": "Cần làm",
+            "Inprogress": "Đang làm",
+            "Done": "Hoàn thành",
+            "items_found": "Tìm thấy {count} hạng mục công việc trong {epic_count} hạng mục lớn",
+            "items_found_scope": "Tìm thấy {count} hạng mục cho phạm vi {scope}"
+        }
+    return {
+        "Epic": "Epic",
+        "Task": "Task",
+        "Sub_task": "Sub-task",
+        "To do": "To do",
+        "Inprogress": "In progress",
+        "Done": "Done",
+        "items_found": "Found {count} work items across {epic_count} epics",
+        "items_found_scope": "Found {count} {scope} items"
+    }
+
+def _build_table_payload(items: List, labels: Dict[str, str], lang: str, detail: bool) -> Dict[str, Any]:
+    """Return a display table payload with localized headers and rows.
+    This is additive and does not replace existing fields.
+    """
+    if lang == 'vi':
+        headers = ["Tên", labels.get("Epic", "Loại"), "Trạng thái", "Hạn chót"]
+        if detail:
+            headers = ["Tên", "Loại", "Trạng thái", "Mức ưu tiên", "Người phụ trách", "Bắt đầu", "Hạn chót"]
+    else:
+        headers = ["Name", labels.get("Epic", "Type"), "Status", "Due date"]
+        if detail:
+            headers = ["Name", "Type", "Status", "Priority", "Assignee", "Start", "Due"]
+
+    rows = []
+    for it in items:
+        # it is original item model; we extract fields safely
+        type_raw = it.type.value if hasattr(it.type, 'value') else str(it.type)
+        type_label = labels.get(type_raw, type_raw)
+        if detail:
+            rows.append([
+                it.epic_name or it.task_name or it.sub_task_name,
+                type_label,
+                it.status.value if hasattr(it.status, 'value') else str(it.status),
+                it.priority.value if hasattr(it.priority, 'value') else str(it.priority),
+                it.assignee_name,
+                it.start_date,
+                it.due_date
+            ])
+        else:
+            rows.append([
+                it.epic_name or it.task_name or it.sub_task_name,
+                type_label,
+                it.status.value if hasattr(it.status, 'value') else str(it.status),
+                it.due_date
+            ])
+
+    # Also provide a markdown table version for quick rendering fallbacks
+    def to_markdown(headers_list, rows_list):
+        if not headers_list:
+            return ""
+        sep = "|".join(["---" for _ in headers_list])
+        md = "|" + "|".join(headers_list) + "|\n" + "|" + sep + "|\n"
+        for r in rows_list:
+            md += "|" + "|".join(["" if (c is None) else str(c) for c in r]) + "|\n"
+        return md
+
+    return {
+        "headers": headers,
+        "rows": rows,
+        "markdown": to_markdown(headers, rows)
+    }
+
+def _is_detail_request(action_description: Optional[str], scope: str) -> bool:
+    """Heuristic: show detailed info when user asks for details or
+    when they focus specifically on task/subtask.
+    """
+    text = (action_description or "").lower()
+    vi_detail = ["chi tiết", "cụ thể", "đủ thông tin", "chi tiet", "cu the"]
+    en_detail = ["detail", "full info", "full information", "complete"]
+    if any(k in text for k in vi_detail + en_detail):
+        return True
+    if scope in ("task", "subtask"):
+        return True
+    return False
+
+def item_to_dict_full_no_id(item, labels: Dict[str, str]) -> Dict:
+    """All relevant fields except id, with localized type label for display only."""
+    type_raw = item.type.value if hasattr(item.type, 'value') else str(item.type)
+    return {
+        "name": item.epic_name or item.task_name or item.sub_task_name,
+        "type": type_raw,
+        "type_label": labels.get(type_raw, type_raw),
+        "description": item.description,
+        "priority": item.priority.value if hasattr(item.priority, 'value') else str(item.priority),
+        "status": item.status.value if hasattr(item.status, 'value') else str(item.status),
+        "assignee_name": item.assignee_name,
+        "start_date": item.start_date,
+        "due_date": item.due_date,
+        "create_at": item.create_at,
+        "update_at": item.update_at
+    }
+
+def item_to_dict_summary_min(item, labels: Dict[str, str]) -> Dict:
+    """Minimal fields for list/overview views."""
+    type_raw = item.type.value if hasattr(item.type, 'value') else str(item.type)
+    return {
+        "name": item.epic_name or item.task_name or item.sub_task_name,
+        "type": type_raw,
+        "type_label": labels.get(type_raw, type_raw),
+        "status": item.status.value if hasattr(item.status, 'value') else str(item.status),
+        "due_date": item.due_date
+    }
+
 def smart_list_tasks_tool(
     action_description: str,
     scope: str = "all",  # "all", "epic", "task", "subtask"
@@ -170,9 +310,13 @@ def smart_list_tasks_tool(
         if include_hierarchy and scope == "all":
             # Build hierarchical structure
             hierarchy = build_hierarchy(epics, tasks, subtasks)
+            # Language detection and labels
+            lang = _detect_language(action_description)
+            labels = _get_labels(lang)
+            detail = _is_detail_request(action_description, scope)
             response = {
                 "status": "success",
-                "message": f"Found {len(filtered_items)} work items across {len(epics)} epics",
+                "message": labels["items_found"].format(count=len(filtered_items), epic_count=len(epics)),
                 "total_items": len(filtered_items),
                 "workspace_id": workspace_id,
                 "user_id": user_id,
@@ -183,6 +327,8 @@ def smart_list_tasks_tool(
                     "assignee_name": assignee_name
                 },
                 "hierarchy": hierarchy,
+                # ✅ ADD THIS: Always include items list for user-friendly display
+                "items": [item_to_dict(item) for item in filtered_items],
                 "summary": {
                     "epics": len(epics),
                     "tasks": len(tasks),
@@ -193,13 +339,33 @@ def smart_list_tasks_tool(
                     "todo": count_by_status(filtered_items, "To do")
                 },
                 "action_description": action_description,
-                "expected_outcome": expected_outcome
+                "expected_outcome": expected_outcome,
+                # Localization metadata for the agent renderer
+                "language": lang,
+                "labels": labels,
+                "definitions": {
+                    "epic": labels.get("Epic", "Epic"),
+                    "task": labels.get("Task", "Task"),
+                    "subtask": labels.get("Sub_task", "Sub-task")
+                },
+                # New, non-breaking display payload
+                "display": {
+                    "detail": detail,
+                    "items": [
+                        (item_to_dict_full_no_id(i, labels) if detail else item_to_dict_summary_min(i, labels))
+                        for i in filtered_items
+                    ],
+                    "table": _build_table_payload(filtered_items, labels, lang, detail)
+                }
             }
         else:
             # Flat list structure
+            lang = _detect_language(action_description)
+            labels = _get_labels(lang)
+            detail = _is_detail_request(action_description, scope)
             response = {
                 "status": "success",
-                "message": f"Found {len(filtered_items)} {scope} items",
+                "message": labels["items_found_scope"].format(count=len(filtered_items), scope=scope),
                 "total_items": len(filtered_items),
                 "workspace_id": workspace_id,
                 "user_id": user_id,
@@ -207,8 +373,40 @@ def smart_list_tasks_tool(
                 "scope": scope,
                 "items": [item_to_dict(item) for item in filtered_items],
                 "action_description": action_description,
-                "expected_outcome": expected_outcome
+                "expected_outcome": expected_outcome,
+                "language": lang,
+                "labels": labels,
+                "definitions": {
+                    "epic": labels.get("Epic", "Epic"),
+                    "task": labels.get("Task", "Task"),
+                    "subtask": labels.get("Sub_task", "Sub-task")
+                },
+                "display": {
+                    "detail": detail,
+                    "items": [
+                        (item_to_dict_full_no_id(i, labels) if detail else item_to_dict_summary_min(i, labels))
+                        for i in filtered_items
+                    ],
+                    "table": _build_table_payload(filtered_items, labels, lang, detail)
+                }
             }
+        # Post-process: attach localized type label per item without altering logic
+        try:
+            labels = response.get("labels", {})
+            for it in response.get("items", []):
+                t = it.get("type")
+                if t in ("Epic", "Task", "Sub_task"):
+                    it["type_label"] = labels.get(t, t)
+            for h in response.get("hierarchy", []):
+                epic = h.get("epic")
+                if epic:
+                    epic.setdefault("type_label", labels.get("Epic", "Epic"))
+                    for t in epic.get("tasks", []):
+                        t.setdefault("type_label", labels.get("Task", "Task"))
+                        for s in t.get("subtasks", []):
+                            s.setdefault("type_label", labels.get("Sub_task", "Sub-task"))
+        except Exception as e:
+            logger.warning(f"Localization post-process failed: {e}")
         
         logger.info(f"Successfully retrieved {len(filtered_items)} items")
         return response

@@ -17,18 +17,17 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
 
         .chat-container {
-            width: 90%;
-            max-width: 900px;
-            height: 90vh;
+            width: 100vw;
+            height: 100vh;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 0;
+            box-shadow: none;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -460,9 +459,9 @@
         /* Mobile responsive */
         @media (max-width: 768px) {
             .chat-container {
-                width: 95%;
-                height: 95vh;
-                border-radius: 15px;
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
             }
 
             .message-content {
@@ -533,7 +532,7 @@
             constructor() {
                 this.apiBase = 'http://localhost:8000/api/v1';
                 this.token = null;
-                this.sessionId = 'b9a4234f-b23a-4850-ba40-897c40104c4f'; // Use the session from screenshot
+                this.sessionId = '5b0a38ce-cd1f-4f57-bf74-1171df8a6e8f'; // Use the session from screenshot
                 this.currentMessage = null;
                 
                 // JWT payload theo yêu cầu
@@ -712,7 +711,7 @@
                         
                         // If still no session, use the one from screenshot
                         if (!this.sessionId) {
-                            this.sessionId = 'b9a4234f-b23a-4850-ba40-897c40104c4f';
+                            this.sessionId = '5b0a38ce-cd1f-4f57-bf74-1171df8a6e8f';
                         }
                     }
 
@@ -1006,6 +1005,15 @@
                     this.addMessage('agent', '');
                 }
                 
+                // ✅ HYBRID STREAMING - Backend already sends 3-5 word chunks, just render directly
+                this.renderCompleteWords(text);
+            }
+
+
+            // ✅ RENDER COMPLETE WORDS - Render complete words with proper formatting
+            renderCompleteWords(words) {
+                if (!words) return;
+                
                 // Get existing text (excluding timestamp)
                 const timestamp = this.currentMessage.querySelector('.timestamp');
                 let existingText = '';
@@ -1017,13 +1025,31 @@
                     // Fallback to textContent for first time
                     existingText = this.currentMessage.textContent;
                     if (timestamp) {
-                        existingText = existingText.replace(timestamp.textContent, '').trim();
+                        // Keep trailing spaces; only remove timestamp text
+                        existingText = existingText.replace(timestamp.textContent, '');
                     }
                 }
                 
-                // Append new text
-                const newText = existingText + text;
+                // Append new words
+                // Insert a space at boundary if both sides are letters/numbers and no space exists
+                const prev = existingText || '';
+                const next = words || '';
+
+                // Newline guard for list markers after sentence end
+                const listStart = /^(\d+\.\s|\*\s)/.test(next);
+                const endsWithSentence = /[.!?…]\s*$/.test(prev);
+                const prefix = (endsWithSentence && listStart) ? '\n' : '';
+
+                const needSpace = (
+                    prev &&
+                    !/\s$/.test(prev) &&
+                    !/^\s/.test(next) &&
+                    /[\p{L}\p{N}]$/u.test(prev.slice(-1)) &&
+                    /^[\p{L}\p{N}]/u.test(next[0] || '')
+                );
+                const newText = prev + (prefix || (needSpace ? ' ' : '')) + next;
                 
+                // ✅ HYBRID STREAMING - Backend already handles proper chunking, no need to fix
                 // Store raw text in data attribute
                 this.currentMessage.dataset.rawText = newText;
                 
@@ -1074,6 +1100,7 @@
             }
 
             finalizeCurrentMessage() {
+                // ✅ HYBRID STREAMING - No buffer needed, backend handles chunking
                 this.currentMessage = null;
             }
 
@@ -1107,6 +1134,56 @@
                         successDiv.parentNode.removeChild(successDiv);
                     }
                 }, 5000);
+            }
+
+            // ✅ FIX STICKING WORDS - Fix Vietnamese words that stick together during streaming
+            fixStickingWords(text) {
+                if (!text || typeof text !== 'string') return text;
+                
+                // Only fix specific known patterns that commonly get stuck together
+                // This is more conservative and won't break normal words
+                const commonStuckPatterns = [
+                    // Fix common Vietnamese word combinations that get stuck
+                    { pattern: /([a-zA-ZàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ])(một|trợ|quản|dự|án|nhiệm|vụ|đầu|việc|hôm|nay|tuần|này|tháng|này|sắp|đến|hạn|báo|cáo|tạo|mới|cập|nhật|xóa|sửa|chỉnh|tôi|là|bạn|có|thể|giúp|và|công|một|cách|hiệu|quả|n|cho)/gi, replacement: '$1 $2' },
+                    { pattern: /(một|trợ|quản|dự|án|nhiệm|vụ|đầu|việc|hôm|nay|tuần|này|tháng|này|sắp|đến|hạn|báo|cáo|tạo|mới|cập|nhật|xóa|sửa|chỉnh|tôi|là|bạn|có|thể|giúp|và|công|một|cách|hiệu|quả|n|cho)([a-zA-ZàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ])/gi, replacement: '$1 $2' },
+                    
+                    // Fix specific common stuck combinations
+                    { pattern: /mộttrợ/gi, replacement: 'một trợ' },
+                    { pattern: /quảnlý/gi, replacement: 'quản lý' },
+                    { pattern: /quảnlý/gi, replacement: 'quản lý' },
+                    { pattern: /dựán/gi, replacement: 'dự án' },
+                    { pattern: /nhiệmvụ/gi, replacement: 'nhiệm vụ' },
+                    { pattern: /đầuviệc/gi, replacement: 'đầu việc' },
+                    { pattern: /hômnay/gi, replacement: 'hôm nay' },
+                    { pattern: /bạnhôm/gi, replacement: 'bạn hôm' },
+                    { pattern: /tuầnnày/gi, replacement: 'tuần này' },
+                    { pattern: /thángnày/gi, replacement: 'tháng này' },
+                    { pattern: /sắpđến/gi, replacement: 'sắp đến' },
+                    { pattern: /báocáo/gi, replacement: 'báo cáo' },
+                    { pattern: /tạomới/gi, replacement: 'tạo mới' },
+                    { pattern: /cậpnhật/gi, replacement: 'cập nhật' },
+                    { pattern: /sửachỉnh/gi, replacement: 'sửa chỉnh' },
+                    { pattern: /tôilà/gi, replacement: 'tôi là' },
+                    { pattern: /bạncó/gi, replacement: 'bạn có' },
+                    { pattern: /cóthể/gi, replacement: 'có thể' },
+                    { pattern: /giúpbạn/gi, replacement: 'giúp bạn' },
+                    { pattern: /giúpcho/gi, replacement: 'giúp cho' },
+                    { pattern: /vàcông/gi, replacement: 'và công' },
+                    { pattern: /mộtcách/gi, replacement: 'một cách' },
+                    { pattern: /hiệuquả/gi, replacement: 'hiệu quả' },
+                    { pattern: /chobạn/gi, replacement: 'cho bạn' },
+                    { pattern: /bạnhôm/gi, replacement: 'bạn hôm' },
+                    { pattern: /hômnay/gi, replacement: 'hôm nay' }
+                ];
+                
+                let fixedText = text;
+                
+                // Apply specific pattern fixes
+                commonStuckPatterns.forEach(({ pattern, replacement }) => {
+                    fixedText = fixedText.replace(pattern, replacement);
+                });
+                
+                return fixedText;
             }
 
             scrollToBottom() {
